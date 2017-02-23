@@ -10,7 +10,12 @@ class Robot:
         
     def move(self, dphi, dlen):
         a = self.state[2] + dphi
-        self.state[2] = math.atan2(math.sin(a), math.cos(a))
+        
+        # Angle wrap
+        # math.atan2(math.sin(a), math.cos(a)) -> -pi..pi
+        # math.atan2(math.sin(a-math.pi), math.cos(a-math.pi)) + math.pi -> 0..2pi
+                
+        self.state[2] = math.atan2(math.sin(a-math.pi), math.cos(a-math.pi)) + math.pi
         self.state[0] += math.cos(self.state[2]) * dlen
         self.state[1] += math.sin(self.state[2]) * dlen
         print(self.state)

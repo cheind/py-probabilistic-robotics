@@ -12,7 +12,9 @@ class Robot:
         motion_err = kwargs.pop('err', self.motion_err)
         
         sigma = motion_err * np.abs(motion)
-        e =  np.where(sigma == 0., 0., np.random.randn() * sigma)
+
+        e = np.random.randn(2)
+        e *= sigma
 
         phi = self.state[2] + motion[0] + e[0]
         self.state[0] += math.cos(phi) * (motion[1] + e[1])
@@ -38,7 +40,7 @@ class Robot:
         else:
             return t
 
-    def world_in_robot(self):
+    def world_in_robot(self, **kwargs):
         """Returns a 2x3 matrix representing the world in robot space."""
         hom = kwargs.pop('hom', False)
 
@@ -57,14 +59,13 @@ class Robot:
         else:
             return t
 
-
-
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import matplotlib.animation as animation
     from draw import Drawer
 
     fig, ax = plt.subplots()
+    
     ax.set_xlim([-5, 5])
     ax.set_ylim([-5, 5])
     ax.set_aspect('equal')

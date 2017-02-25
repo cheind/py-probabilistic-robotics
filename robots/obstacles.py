@@ -9,10 +9,8 @@ def inverse_direction(d):
 
 def ray_box(o, d, bounds):
     #http://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
-    invd = np.array([
-        1. / d[0] if d[0] != 0. else 1e12,
-        1. / d[1] if d[1] != 0. else 1e12
-    ])
+
+    invd = inverse_direction(d)
     low = (bounds[0] - o) * invd
     high = (bounds[1] - o) * invd
 
@@ -24,17 +22,20 @@ def ray_box(o, d, bounds):
     elif tmin > tmax:
         return False, tmax
     else:
-        return True, tmin
+        return True, max(tmin, 0.)
 
-def ray_grid(o, d, bounds, mask):
+def ray_grid(o, d, bounds, shape, hitmask=None, hitfnc=None):
+    def mask_hit(o, d, t, cell):
+        return hitmask[cell[1], cell[0]], t
+    
+    if hitfnc is None:
+        hitfnc = mask_hit
+
     ret, tbox = ray_box(o, d, bounds)
     if not ret:
         return False, tbox, np.array([-1, -1])
-    
-    tbox =  max(tbox, 0.)
-    print(tbox)
 
-    res = np.asarray(mask.shape)
+    res = np.asarray(shape)
     cellsize = (bounds[1] - bounds[0]) / res
     ocell = (o + d * tbox) - bounds[0]
     cell = np.clip(np.floor(ocell / cellsize), 0, res - 1).astype(int)
@@ -47,10 +48,12 @@ def ray_grid(o, d, bounds, mask):
 
     t = tbox
     while (cell >= 0).all() and (cell < res).all():
-        if mask[cell[1], cell[0]]:
-            return True, t, cell    
-        
         axis = np.argmin(nextcross)
+
+        ret, hit = hitfnc(o, d, t, cell)
+        if ret and hit < nextcross[axis]:
+            return True, hit, cell    
+                
         cell[axis] += sgn[axis]
         t = nextcross[axis]
         nextcross[axis] += delta[axis]        
@@ -117,33 +120,40 @@ print(
 )
 
 fig, ax = plt.subplots()
-ax.set_xticks(np.arange(0,10,1))
-ax.set_yticks(np.arange(0,10,1))
+ax.set_xticks(np.arange(-100,100,2))
+ax.set_yticks(np.arange(-100,100,2))
 ax.set_aspect('equal')
 
 mask = np.zeros((10, 10))
 mask[:, -1] = 1.
-ax.imshow(mask, interpolation='none', cmap='summer', extent=[0, mask.shape[0], 0, mask.shape[1]])
 
-"""
-r = ray_grid(
-    np.array([0, 0]),
-    np.array([1, 0]),
-    np.array([[0,0],[20,20]]),
-    mask
-)
-"""
+
+bounds = np.array([[2,2],[22,22]])
+ax.imshow(mask, interpolation='none', cmap='summer', extent=[bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]])
 
 dirs = np.random.uniform(-1., 1., size=(20  , 2))
 dirs /= np.linalg.norm(dirs, axis=1)[:, np.newaxis]
 
 for i in range(dirs.shape[0]):
     o = np.array([5, 5])
+    
+    """r = ray_grid(
+        o,
+        dirs[i],
+        bounds,
+        mask)"""
+
+    def myhit(o, d, t, cell):
+        p = o + t * d
+        ax.scatter(p[0], p[1])
+        return mask[cell[1], cell[0]], t
+
     r = ray_grid(
         o,
         dirs[i],
-        np.array([[0,0],[10,10]]),
-        mask)
+        bounds,
+        mask.shape,
+        hitfnc=myhit)
 
     d = o + r[1] * dirs[i]
     colors = ['red', 'blue']

@@ -2,7 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def inverse_direction(d):
     with np.errstate(divide='ignore'):
         return np.where(d == 0., 1e12, 1./d)
@@ -18,20 +17,27 @@ def ray_box(o, d, bounds):
     tmax = np.min(np.maximum(low, high))
     
     if tmax < 0:
-        return False, tmax
+        return False, tmin, tmax
     elif tmin > tmax:
-        return False, tmax
+        return False, tmin, tmax
     else:
-        return True, max(tmin, 0.)
+        return True, max(tmin, 0.), tmax
 
 def ray_grid(o, d, bounds, shape, hitmask=None, hitfnc=None):
+    """Returns the intersection of a ray and grid.
+
+    Based on
+        Amanatides, John, and Andrew Woo. 
+        "A fast voxel traversal algorithm for ray tracing." 
+        Eurographics. Vol. 87. No. 3. 1987.
+    """
     def mask_hit(o, d, t, cell):
         return hitmask[cell[1], cell[0]], t
     
     if hitfnc is None:
         hitfnc = mask_hit
 
-    ret, tbox = ray_box(o, d, bounds)
+    ret, tbox, tboxexit = ray_box(o, d, bounds)
     if not ret:
         return False, tbox, np.array([-1, -1])
 

@@ -11,6 +11,7 @@ class Drawer:
         fc = kwargs.pop('fc', 'None')
         ec = kwargs.pop('ec', 'k')
         with_axis = kwargs.pop('with_axis', True)
+        with_circle = kwargs.pop('with_circle', True)
 
         if (ax, r) not in self.items:
             c = Circle((0,0), radius=radius, fc=fc, ec=ec)
@@ -23,10 +24,11 @@ class Drawer:
 
         updated = []
 
-        d = self.items[(ax, r)]
-        d['c'].set_radius(radius)
-        d['c'].center = r.state[:2]
-        updated.append(d['c'])
+        if with_circle:
+            d = self.items[(ax, r)]
+            d['c'].set_radius(radius)
+            d['c'].center = r.state[:2]
+            updated.append(d['c'])
 
         if with_axis:
             m = r.robot_in_world()

@@ -3,6 +3,7 @@ import numpy as np
 import math
 from pytest import approx
 
+
 from robots import isect
 
 def test_ray_box():

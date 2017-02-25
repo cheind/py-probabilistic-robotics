@@ -7,23 +7,26 @@ import math
 def default_state():
     return np.array([0.,0.,0.])
 
-def move(state, motion, err_motion=[0., 0.], inplace=False):
-    """Move robot by first turning and then driving along the robot's x-axis."""
-    e_phi = 0. if err_motion[0] == 0. else np.random.normal(scale=err_motion[0])
-    e_delta = 0. if err_motion[1] == 0. else np.random.normal(scale=err_motion[1])
+def motion_error(sigma):
+    return np.where(sigma == 0., 0., np.random.randn() * sigma)
 
-    if inplace:
-        state[2] += motion[0] + e_phi
-        state[0] += math.cos(state[2]) * (motion[1] + e_delta)
-        state[1] += math.sin(state[2]) * (motion[1] + e_delta)
-        return state
-    else:
-        phi = state[2] + motion[0] + e_phi
-        return np.array([
-            state[0] + math.cos(phi) * (motion[1] + e_delta),
-            state[1] + math.sin(phi) * (motion[1] + e_delta),
-            phi
-        ])
+def move(state, motion, err_motion=[0., 0.], err_scale=1.):    
+    """Move robot by first turning and then driving along the robot's x-axis."""    
+
+    motion = np.asarray(motion)
+    e = motion_error(motion * err_scale * err_motion)
+
+    phi = state[2] + motion[0] + e[0]
+    return np.array([
+        state[0] + math.cos(phi) * (motion[1] + e[1]),
+        state[1] + math.sin(phi) * (motion[1] + e[1]),
+        phi
+    ])
+
+
+def imove(state, motion, err_motion=[0., 0.], err_scale=1.):
+    """Move robot by first turning and then driving along the robot's x-axis."""    
+    state[:] = move(state, motion, err_motion, err_scale)
 
     # Angle wrap
     # math.atan2(math.sin(a), math.cos(a)) -> -pi..pi
@@ -67,6 +70,8 @@ def draw(state, ax, radius=0.5, fc='None', ec='k'):
 
     return c, lx, ly
 
+
+"""
 fig, ax = plt.subplots()
 ax.set_xlim([-5, 5])
 ax.set_ylim([-5, 5])
@@ -84,5 +89,5 @@ def update(i):
 
 ani = animation.FuncAnimation(fig, update, 25, interval=50, blit=True)
 plt.show()
-
+"""
 

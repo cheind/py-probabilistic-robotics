@@ -119,7 +119,7 @@ class DefaultDrawer(BaseDrawer):
         
         return d['w'],
 
-    def draw_grid(self, grid, values, ax, **kwargs):
+    def draw_grid(self, grid, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
         cmap = kwargs.pop('cmap', 'gray_r')
         interp = kwargs.pop('interpolation', 'none')
@@ -127,11 +127,11 @@ class DefaultDrawer(BaseDrawer):
         alpha = kwargs.pop('alpha', 1)
 
         if (ax, key) not in self.items:
-            im = ax.imshow(values, interpolation=interp, alpha=alpha, cmap=cmap, extent=[grid.mincorner[0], grid.maxcorner[0], grid.mincorner[1], grid.maxcorner[1]], zorder=zorder)
+            im = ax.imshow(grid.values, interpolation=interp, alpha=alpha, cmap=cmap, extent=[grid.mincorner[0], grid.maxcorner[0], grid.mincorner[1], grid.maxcorner[1]], zorder=zorder)
             self.items[(ax, key)] = dict(im=im)
 
         d = self.items[(ax, key)]
-        d['im'].set_data(values)
+        d['im'].set_data(grid.values)
 
         return d['im'],
        

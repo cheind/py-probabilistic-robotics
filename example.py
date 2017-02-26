@@ -26,7 +26,7 @@ if __name__ == '__main__':
     mask[:, -1] = 1.
     mask[:, 0] = 1.    
 
-    grid = Grid(mask.shape, bbox)
+    grid = Grid(mask, bbox)
     
     drawer = DefaultDrawer()
 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     ax.set_aspect('equal')
     ax.grid()
 
-    drawer.draw_grid(grid, mask, ax, alpha=0.5)
+    drawer.draw_grid(grid, ax, alpha=0.5)
     drawer.draw_landmarks(landmarks, ax, key='landmarks')
 
 

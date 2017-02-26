@@ -3,9 +3,10 @@ from robots.bbox import safe_invdir
 
 class Grid:
 
-    def __init__(self, resolution, bbox):
+    def __init__(self, values, bbox):
+        self.values = np.asarray(values)
         self.bbox = bbox
-        self.resolution = np.asarray(resolution)
+        self.resolution = np.asarray(self.values.shape)
         self.cellsize = (bbox.maxcorner - bbox.mincorner) / self.resolution
 
     @property
@@ -20,7 +21,7 @@ class Grid:
     def bounds(self):
         return self.bbox.bounds
 
-    def intersect_with_ray(self, o, d, hitmask):
+    def intersect_with_ray(self, o, d, hitmask=None):
         """Returns the intersection of a ray and grid.
 
         Based on
@@ -41,6 +42,9 @@ class Grid:
         add = np.where(sgn < 0, 0., 1.)
         delta = sgn * self.cellsize * invd
         nextcross = tbox + ((cell + add) * self.cellsize - ocell) * invd    
+
+        if hitmask is None:
+            hitmask = self.values
 
         t = tbox
         while (cell >= 0).all() and (cell < self.resolution).all():

@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
         ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
         if ret:
-            print('ups')
+            print('robot collision')
 
         return u
 

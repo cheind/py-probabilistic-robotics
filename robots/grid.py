@@ -21,7 +21,7 @@ class Grid:
     def bounds(self):
         return self.bbox.bounds
 
-    def intersect_with_ray(self, o, d, hitmask=None):
+    def intersect_with_ray(self, o, d, tmax=None, hitmask=None):
         """Returns the intersection of a ray and grid.
 
         Based on
@@ -46,8 +46,12 @@ class Grid:
         if hitmask is None:
             hitmask = self.values
 
+        if tmax is None:
+            tmax = float('inf')
+        tmax = min(tboxexit, tmax)
+        
         t = tbox
-        while (cell >= 0).all() and (cell < self.resolution).all():
+        while (t <= tmax) and (cell >= 0).all() and (cell < self.resolution).all():
             axis = np.argmin(nextcross)
 
             if hitmask[cell[1], cell[0]]:

@@ -49,9 +49,14 @@ if __name__ == '__main__':
         mask, bearings = sensor.sense(robot)
         colors = ['g' if m else 'b' for m in mask] # Visible landmarks are colored green
 
-        u = drawer.draw_robot(robot, ax, key='robot')
+        u = drawer.draw_robot(robot, ax, key='robot', radius=0.5)
         u += drawer.draw_landmark_sensor(robot, sensor, ax, key='sensor')
         u += drawer.draw_landmarks(landmarks, ax, fc=colors, key='landmarks')
+
+        ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
+        if ret:
+            print('ups')
+
         return u
 
     ani = animation.FuncAnimation(fig, update, 25, interval=30, blit=True)

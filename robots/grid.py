@@ -63,4 +63,38 @@ class Grid:
             axis = np.argmin(nextcross)
 
         return False, t, cell
+
+
+    def cell_floor(self, x):
+        return np.floor((x - self.bbox.mincorner) / self.cellsize).astype(int)
     
+    def cell_ceil(self, x):
+        return np.ceil((x - self.bbox.mincorner) / self.cellsize).astype(int)
+
+    def world_coords(self, cell):
+        return self.bbox.mincorner + cell * self.cellsize
+
+    def intersect_with_circle(self, center, radius, hitmask=None):
+        if hitmask is None:
+            hitmask = self.values
+
+
+        c_min = np.clip(self.cell_floor(center - [radius, radius]), 0, self.resolution - 1)
+        c_max = np.clip(self.cell_ceil(center + [radius, radius]), 0, self.resolution - 1)
+
+        r2 = radius**2
+        for i in range(c_min[0], c_max[0]):
+            for j in range(c_min[1], c_max[1]):
+                if not hitmask[j, i]:
+                    continue
+
+                # need to check circle to closest point
+                b_min = self.world_coords([i, j])
+                b_max = self.world_coords([i + 1, j + 1])
+
+                nearest = np.maximum(b_min, np.minimum(center, b_max))
+                delta = nearest - center
+                if np.dot(delta, delta) < r2:
+                    return True, [i, j]
+
+        return False, [-1, -1]

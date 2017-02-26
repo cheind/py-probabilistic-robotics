@@ -65,3 +65,23 @@ def test_ray_grid():
     ret, thit, cell = grid.intersect_with_ray(o, d)
     assert ret
     assert (cell == [9,9]).all()
+
+def test_intersect_circle():
+    bbox = BBox([1,1], [10,10])
+
+    mask = np.zeros((10, 10))
+    mask[:, -1] = 1.
+    mask[:, 0] = 1.    
+
+    grid = Grid(mask, bbox)
+
+    ret, cell = grid.intersect_with_circle(np.array([1.5, 1.5]), 0.1)    
+    assert ret
+    np.testing.assert_allclose(cell, [0,0])
+
+    ret, cell = grid.intersect_with_circle(np.array([3.5, 3.5]), 1.)    
+    assert not ret
+
+    ret, cell = grid.intersect_with_circle(np.array([3.5, 3.5]), 2.)    
+    assert ret
+    np.testing.assert_allclose(cell, [0, 1])

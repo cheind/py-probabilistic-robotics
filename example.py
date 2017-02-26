@@ -17,8 +17,8 @@ if __name__ == '__main__':
         [-3, 10, 3],
         [-3, 10, 5]
     ], dtype=float)
-    s = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing')
-    r = Robot(state=[0,0,0])
+    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing')
+    robot = Robot(state=[0,0,0])
 
     bbox = BBox([0,0], [10,10])
 
@@ -41,14 +41,13 @@ if __name__ == '__main__':
 
 
     def update(i):
-        r.move([0.05, 0.1])
-        mask, bearings = s.sense(r)
-
+        robot.move([0.05, 0.1])
+        mask, bearings = sensor.sense(robot)
         colors = ['g' if m else 'b' for m in mask]
 
-        u = drawer.draw_robot(r, ax, key='robot')
-        u += drawer.draw_landmark_sensor(r, s, ax, key='sensor')
-        u += drawer.draw_landmarks(landmarks, ax, fc=colors)
+        u = drawer.draw_robot(robot, ax, key='robot')
+        u += drawer.draw_landmark_sensor(robot, sensor, ax, key='sensor')
+        u += drawer.draw_landmarks(landmarks, ax, fc=colors, key='landmarks')
         return u
 
     ani = animation.FuncAnimation(fig, update, 25, interval=30, blit=True)

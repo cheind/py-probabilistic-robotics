@@ -33,7 +33,7 @@ def test_noisy_move():
     std = np.std(locs)
     
     assert mu == approx(10, abs=0.5)
-    assert std == approx(1, abs=1e-1)
+    assert std == approx(1, abs=0.5)
 
 def test_robot_transforms():   
     r = Robot(state=[10, 0, math.pi/2]) 
@@ -43,7 +43,8 @@ def test_robot_transforms():
         k,
         np.array([
             [0, -1, 10],
-            [1, 0, 0]
+            [1, 0, 0],
+            [0, 0, 1],
         ]),
         atol=1e-4
     )
@@ -57,6 +58,6 @@ def test_robot_transforms():
 
     np.testing.assert_allclose(
         k,
-        m[0:2, :],
+        m,
         atol=1e-4
     )

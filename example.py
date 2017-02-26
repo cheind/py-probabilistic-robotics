@@ -13,37 +13,41 @@ import math
 
 if __name__ == '__main__':
 
-    landmarks = np.array([
-        [-3, 10, 3],
-        [-3, 10, 5]
-    ], dtype=float)
-    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing')
-    robot = Robot(state=[0,0,0])
-
+    # Define the collision map
     bbox = BBox([0,0], [10,10])
-
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
-    mask[:, 0] = 1.    
-
+    mask[:, 0] = 1. 
+    mask[5, 5] = 1.  
     grid = Grid(mask, bbox)
-    
-    drawer = DefaultDrawer()
 
+    # Landmarks in world space
+    landmarks = np.array([
+        [3, 5, 6],
+        [3, 8, 1]
+    ], dtype=float)
+
+    # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
+    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', obstacles=grid)
+
+    # Virtual x,y,phi robot
+    robot = Robot(state=[-1,4,0])
+
+
+    drawer = DefaultDrawer()
     fig, ax = plt.subplots()
-    ax.set_xlim([-15, 15])
-    ax.set_ylim([-15, 15])
+    ax.set_xlim([-5, 15])
+    ax.set_ylim([-5, 15])
     ax.set_aspect('equal')
     ax.grid()
 
     drawer.draw_grid(grid, ax, alpha=0.5)
     drawer.draw_landmarks(landmarks, ax, key='landmarks')
 
-
     def update(i):
-        robot.move([0.05, 0.1])
+        robot.move([0.02, 0.1])
         mask, bearings = sensor.sense(robot)
-        colors = ['g' if m else 'b' for m in mask]
+        colors = ['g' if m else 'b' for m in mask] # Visible landmarks are colored green
 
         u = drawer.draw_robot(robot, ax, key='robot')
         u += drawer.draw_landmark_sensor(robot, sensor, ax, key='sensor')

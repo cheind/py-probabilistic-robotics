@@ -45,7 +45,7 @@ if __name__ == '__main__':
     landmarks = np.array([
         [0, 10, 3],
         [0, 10, 5]
-    ])
+    ], dtype=float)
     s = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing')
     r = Robot(state=[0,0,0])
     
@@ -53,10 +53,9 @@ if __name__ == '__main__':
     rsd = LandmarkSensorDrawer()
     ld = LandmarkDrawer()
 
-
     fig, ax = plt.subplots()
-    ax.set_xlim([-20, 20])
-    ax.set_ylim([-20, 20])
+    ax.set_xlim([-15, 15])
+    ax.set_ylim([-15, 15])
     ax.set_aspect('equal')
     ax.grid()
 
@@ -65,7 +64,8 @@ if __name__ == '__main__':
         print(s.sense(r)[0]) # print mask of visible landmarks
         u = rd.draw(r, ax, key='robot')
         u += rsd.draw(r, s, ax, key='sensor')
-        u += ld.draw(landmarks, ax, key='landmarks')
+        landmarks[0, 0] += 0.1
+        u += ld.draw(landmarks, ax, key='landmarks', with_labels=True)
         return u
 
     ani = animation.FuncAnimation(fig, update, 25, interval=30, blit=True)

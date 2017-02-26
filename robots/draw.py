@@ -46,21 +46,19 @@ class RobotDrawer(BaseDrawer):
             updated.append(d['c'])
 
         if with_axis:
-            m = robot.robot_in_world()
-            points = np.array([
-                [0, radius, 0],
-                [0, 0, radius],
-                [1, 1, 1]
-            ])
-            p = np.dot(m, points)
 
-            d['lx'].set_xdata([p[0, 0], p[0, 1]])
-            d['lx'].set_ydata([p[1, 0], p[1, 1]])
+            mtx = robot.robot_in_world()
+            tr = mplt.Affine2D(matrix=mtx) + ax.transData
+
+            d['lx'].set_xdata([0., radius])
+            d['lx'].set_ydata([0., 0])
             d['lx'].set_zorder(zorder)
+            d['lx'].set_transform(tr)
 
-            d['ly'].set_xdata([p[0, 0], p[0, 2]])
-            d['ly'].set_ydata([p[1, 0], p[1, 2]])
+            d['ly'].set_xdata([0., 0])
+            d['ly'].set_ydata([0., radius])
             d['ly'].set_zorder(zorder)
+            d['ly'].set_transform(tr)
 
             updated.append(d['lx'])
             updated.append(d['ly'])
@@ -74,18 +72,31 @@ class LandmarkDrawer(BaseDrawer):
         size = kwargs.pop('size', 50)
         fc = kwargs.pop('fc', 'b')
         ec = kwargs.pop('ec', 'none')
+        with_labels = kwargs.pop('with_labels', False)
         zorder = kwargs.pop('zorder', 3)
 
         if (ax, key) not in self.items:
-            scat = ax.scatter(landmarks[0], landmarks[1], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=(5, 1))
-            self.items[(ax, key)] = dict(scatter=scat)
+            scat = ax.scatter(landmarks[0], landmarks[1], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=(5, 1))       
+            ann = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]    
+            self.items[(ax, key)] = dict(scatter=scat, ann=ann)
 
-        scat = self.items[(ax, key)]['scatter']
+        updated=[]
+        
+        d = self.items[(ax, key)]
+        scat = d['scatter']
         scat.set_offsets(landmarks.T)
         scat.set_zorder(zorder)
         scat.set_facecolors(fc)
         scat.set_edgecolors(ec)
-        return scat,
+        updated.append(scat)
+
+        if with_labels:
+            ann = d['ann']
+            for i,a in enumerate(ann):
+                 a.set_position((landmarks[0,i], landmarks[1,i]))
+            updated.extend(ann)
+
+        return updated
 
 class LandmarkSensorDrawer(BaseDrawer):
 

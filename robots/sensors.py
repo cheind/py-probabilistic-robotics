@@ -16,6 +16,7 @@ class LandmarkSensor:
     def sense(self, robot, **kwargs):        
         sense_err = kwargs.pop('err', self.sense_err)
         obstacles = kwargs.pop('obstacles', self.obstacles)
+        measure = kwargs.pop('measure', self.measure)
         
         # Transform into robot space
         tl = np.dot(robot.world_in_robot(), self.landmarks)
@@ -46,8 +47,13 @@ class LandmarkSensor:
                 ret, t, cell = obstacles.intersect_with_ray(o, d, tmax=n)
                 mask[i] = t > n
 
-        if self.measure == 'position':
+        if measure == 'position':
             return mask, tl
-        elif self.measure == 'bearing':
+        elif measure == 'bearing':
             return mask, angles
+        elif measure == 'distance':
+            dists = np.linalg.norm(tl, axis=0)
+            return mask, dists
+        else:
+            raise ValueError('Unknown measure type')
         

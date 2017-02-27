@@ -48,3 +48,13 @@ def transform(m, x, hvalue=1.):
     if needh:
         x = hnorm(x, skip_division=True)
     return x
+
+def rigid_inverse(m):
+    t = m[:2, 2]
+    r = m[:2, :2].T
+
+    mnew = np.eye(3)
+    mnew[:2, :2] = r
+    mnew[:2, 2] = -np.dot(r, t)
+
+    return mnew

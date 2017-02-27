@@ -1,11 +1,11 @@
 
 
 import numpy as np
-from robots.robots import Robot
+from robots.robots import XYPhiRobot
 from robots.grid import Grid
 from robots.sensors import LandmarkSensor
 from robots.bbox import BBox
-from robots.draw import DefaultDrawer
+from robots.draw import Drawer
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import math
@@ -31,10 +31,10 @@ if __name__ == '__main__':
     sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', obstacles=grid)
 
     # Virtual x,y,phi robot
-    robot = Robot(state=[-1,4,0])
+    robot = XYPhiRobot(state=[-1,4,0])
 
 
-    drawer = DefaultDrawer()
+    drawer = Drawer()
     fig, ax = plt.subplots()
     ax.set_xlim([-5, 15])
     ax.set_ylim([-5, 15])

@@ -37,7 +37,7 @@ class LandmarkSensor:
 
         # If obstacles are provided determine occluded landmarks via ray-tracing
         if obstacles:
-            o = robot.state[:2]
+            o = robot.pose[:2]
             for i, m in enumerate(mask):
                 if not m:
                     continue                    

@@ -2,12 +2,12 @@ import numpy as np
 import math
 from pytest import approx
 
-from robots.robots import Robot
+from robots.robots import XYPhiRobot
 from robots.sensors import LandmarkSensor
 
 def test_landmark_sensor():
 
-    r = Robot(state=[5, 5, 0])
+    r = XYPhiRobot(state=[5, 5, 0])
 
     landmarks = np.array([
         [0, 3, -2],

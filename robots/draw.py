@@ -16,7 +16,7 @@ class BaseDrawer:
         self.nextkey += 1
         return k
 
-class DefaultDrawer(BaseDrawer):
+class Drawer(BaseDrawer):
 
     def draw_robot(self, robot, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
@@ -42,7 +42,7 @@ class DefaultDrawer(BaseDrawer):
 
         if with_circle:            
             d['c'].set_radius(radius)
-            d['c'].center = robot.state[:2]
+            d['c'].center = robot.pose[:2]
             d['c'].set_zorder(zorder)
             updated.append(d['c'])
 

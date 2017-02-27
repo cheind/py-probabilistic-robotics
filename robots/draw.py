@@ -5,22 +5,27 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Wedge
 from matplotlib.collections import LineCollection
 import matplotlib.transforms as mplt
+
 from robots import transforms
+from robots.posenode import PoseNode
 
 class BaseDrawer:
     def __init__(self):
         self.items = {}
         self.nextkey = 0
 
-    def genkey(self):
-        k = self.nextkey
-        self.nextkey += 1
-        return k
+    def keyfor(self, obj):
+        if isinstance(obj, (PoseNode, np.ndarray, list, tuple)):
+            return id(obj)
+        else:
+            k = self.nextkey
+            self.nextkey += 1
+            return k
 
 class Drawer(BaseDrawer):
 
     def draw_robot(self, robot, ax, **kwargs):
-        key = kwargs.pop('key', self.genkey())
+        key = kwargs.pop('key', self.keyfor(robot))
 
         radius = kwargs.pop('radius', 0.5)
         fc = kwargs.pop('fc', 'None')
@@ -66,7 +71,7 @@ class Drawer(BaseDrawer):
         return updated
 
     def draw_points(self, points, ax, **kwargs):
-        key = kwargs.pop('key', self.genkey())
+        key = kwargs.pop('key', self.keyfor(points))
         
         size = kwargs.pop('size', 80)
         fc = kwargs.pop('fc', 'b')
@@ -107,7 +112,8 @@ class Drawer(BaseDrawer):
         
 
     def draw_sensor(self, sensor, ax, **kwargs):
-        key = kwargs.pop('key', self.genkey())
+        key = kwargs.pop('key', self.keyfor(sensor))
+
         fc = kwargs.pop('fc', 'r')
         ec = kwargs.pop('ec', 'r')
         zorder = kwargs.pop('zorder', 3)
@@ -126,7 +132,8 @@ class Drawer(BaseDrawer):
 
 
     def draw_grid(self, grid, ax, **kwargs):
-        key = kwargs.pop('key', self.genkey())
+        key = kwargs.pop('key', self.keyfor(grid))
+
         cmap = kwargs.pop('cmap', 'gray_r')
         interp = kwargs.pop('interpolation', 'none')
         zorder = kwargs.pop('zorder', 1)

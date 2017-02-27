@@ -51,15 +51,15 @@ if __name__ == '__main__':
         # First sensor
         mask, bearings = sensor.sense()
         colors = ['g' if m else 'b' for m in mask]
-        u = drawer.draw_robot(robot, ax, key='robot', radius=0.5)        
-        u += drawer.draw_sensor(sensor, ax, key='sensor')        
-        u += drawer.draw_points(landmarks, ax, fc=colors, key='landmarks')
+        u = drawer.draw_robot(robot, ax, radius=0.5)        
+        u += drawer.draw_sensor(sensor, ax)        
+        u += drawer.draw_points(landmarks, ax, fc=colors)
         
         # Second sensor
         mask, points = lidar.sense()        
         points = points[:, np.where(mask)[0]]
-        u += drawer.draw_points(points, ax, marker='o', key='lidars', transform=lidar.transform_to_world)
-        u += drawer.draw_sensor(lidar, ax, key='lidar')        
+        u += drawer.draw_points(points, ax, marker='o', transform=lidar.transform_to_world, key='lidar')
+        u += drawer.draw_sensor(lidar, ax)     
 
         """
         ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)

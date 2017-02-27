@@ -6,8 +6,42 @@ from robots.posenode import PoseNode
 
 
 class LandmarkSensor(PoseNode):
+    """A sensor simulating detection of landmarks.
+    
+    Landmarks are identifyable points in the environment. The simulation assumes
+    that the true landmark positions are known and those do not change of time. The
+    sensor additional assumes that the indexing of landmarks remains constant.
+    
+    The sensor supports custom field of views as well as limiting the max distance
+    to detectable landmarks. Optionally occluded landmarks can be disregarded when
+    an environment Grid is given. An error model allows measuring deviations from
+    true landmark positions.
+
+    Besides relative landmark positions with respect to this sensor, reporting 
+    bearings (angles) or distances is also supported.    
+    """
 
     def __init__(self, landmarks, **kwargs):
+        """Create a LandmarkSensor.
+
+        Params
+            landmarks : 2xN vector of true landmark positions in world frame.
+
+        Kwargs
+            err : (optional) scalar 
+                The error associated with sensing. The error model assumes a zero centered normal 
+                distribution having a standard deviation proportional to the distance of landmarks.
+            fov : (optional) scalar 
+                Field of view of sensor [0..2pi]
+            maxdist : (optional) scalar
+                Maximum detectable range
+            measure : (optional) string
+                Type of measurement. One of ['position', 'bearing', 'distance']
+            environment : (optional) Grid 
+                Grid used to determine occlusion of landmarks with respect to sensor.
+            pose : (optional) 1x3 array
+                Pose vector. If omitted identity is assumed.
+        """
         self.sense_err = kwargs.pop('err', 0)
         self.fov = kwargs.pop('fov', 2 * math.pi)
         self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)
@@ -18,7 +52,32 @@ class LandmarkSensor(PoseNode):
         pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
         super(LandmarkSensor, self).__init__(pose=pose)
 
-    def sense(self, **kwargs):        
+    def sense(self, **kwargs):
+        """Observe landmarks.
+
+        Kwargs
+            err : (optional) scalar 
+                The error associated with sensing. The error model assumes a zero centered normal distribution 
+                having a standard deviation proportional to the distance of landmarks. If omitted value from 
+                construction is used.
+            environment : (optional) Grid 
+                Grid to determine occlusion of landmarks with respect to sensor. If omitted value from 
+                construction is used.
+            measure : (optional) string
+                Type of measurement. One of ['position', 'bearing', 'distance']. If omitted value from 
+                construction is used.
+
+        Returns
+            mask : 1xN boolean array
+                A mask indicating the visibility of individual landmarks
+            position : 2xN array 
+                Landmark positions with respect to sensor frame. Only if measure is 'position'            
+            bearing : 1xN array 
+                Landmark bearings measured with respect to the sensor x-axis. Only if measure is 'bearing'
+            distance : 1xN array 
+                Euclidean distances to sensor position. Only if measure is 'distance'
+        """
+
         sense_err = kwargs.pop('err', self.sense_err)
         environment = kwargs.pop('environment', self.environment)
         measure = kwargs.pop('measure', self.measure)
@@ -65,20 +124,67 @@ class LandmarkSensor(PoseNode):
         
 
 class LidarSensor(PoseNode):
+    """A sensor simulating LIDAR range sensors.
+
+    LIDAR measures distances through the reflection of laser beams sent out
+    radially from the sensor. For each ray a range measurement is produced if 
+    an obstacle reflected the light.
+
+    This sensor simulation takes an evironment map (Grid) to determine
+    intersections with light rays. The sensor features a field of view, a max 
+    range distance as well as angular resolution. The error model produces
+    errors proportional to the distance of intersections.    
+    """
 
     def __init__(self, environment, **kwargs):
+        """Create a LidarSensor.
+
+        Params
+            environment : Grid
+                Grid used to determine intersection with light rays.
+
+        Kwargs
+            err : (optional) scalar 
+                The error associated with sensing. The error model assumes a zero centered normal 
+                distribution having a standard deviation proportional to the distance of intersections.
+            fov : (optional) scalar 
+                Field of view of sensor [0..2pi]
+            maxdist : (optional) scalar
+                Maximum detectable range
+            angular_resolution : (optional) scalar
+                Angular resolution between two consecutive rays in radians.
+            pose : (optional) 1x3 array
+                Pose vector. If omitted identity is assumed.
+        """
         self.environment = environment
-        self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)
-        
+
+        self.sense_err = kwargs.pop('err', 0)
         self.fov = kwargs.pop('fov', 2 * math.pi)
+        self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)
         self.angular_res = kwargs.pop('angular_resolution', 0.1)        
         self.angles = np.arange(-self.fov/2, self.fov/2, self.angular_res)
-        self.sense_err = kwargs.pop('err', 0)
         
         pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
         super(LidarSensor, self).__init__(pose=pose)
 
     def sense(self, **kwargs):
+        """Perform range measurements.
+
+        Kwargs
+            err : (optional) scalar 
+                The error associated with sensing. The error model assumes a zero centered normal distribution 
+                having a standard deviation proportional to the distance of intersections. If omitted value from 
+                construction is used.
+            environment : (optional) Grid 
+                Grid to determine occlusion of landmarks with respect to sensor. If omitted value from 
+                construction is used.
+
+        Returns
+            mask : 1xN boolean array
+                A mask indicating the success of range measurement of individual rays
+            position : 2xN array 
+                Ray/environment intersection locations in the sensor frame.
+        """
         sense_err = kwargs.pop('err', self.sense_err)
         environment = kwargs.pop('environment', self.environment)
 

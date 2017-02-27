@@ -14,7 +14,6 @@ class PoseNode:
     compositable in a hierarchical fashion.
     """
 
-
     def __init__(self, pose=[0,0,0], parent=None):
         """Create a PoseNode.
 

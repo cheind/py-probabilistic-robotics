@@ -41,17 +41,15 @@ class Drawer(BaseDrawer):
         updated = []
         d = self.items[(ax, key)]
 
+        tr = mplt.Affine2D(matrix=robot.transform_to_world) + ax.transData
+
         if with_circle:            
             d['c'].set_radius(radius)
-            d['c'].center = robot.pose[:2]
             d['c'].set_zorder(zorder)
+            d['c'].set_transform(tr)
             updated.append(d['c'])
 
         if with_axis:
-
-            mtx = transforms.pose_in_world(robot.pose)
-            tr = mplt.Affine2D(matrix=mtx) + ax.transData
-
             d['lx'].set_xdata([0., radius])
             d['lx'].set_ydata([0., 0])
             d['lx'].set_zorder(zorder)
@@ -82,7 +80,7 @@ class Drawer(BaseDrawer):
             points = transforms.transform(t, points, hvalue=1.)
 
         if (ax, key) not in self.items:
-            scat = ax.scatter(points[0], points[1], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
+            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
             self.items[(ax, key)] = dict(scatter=scat)
 
         updated=[]
@@ -93,6 +91,7 @@ class Drawer(BaseDrawer):
         scat.set_zorder(zorder)
         scat.set_facecolors(fc)
         scat.set_edgecolors(ec)
+
         updated.append(scat)
 
         if with_labels:
@@ -107,7 +106,7 @@ class Drawer(BaseDrawer):
         return updated
         
 
-    def draw_sensor(self, robot, sensor, ax, **kwargs):
+    def draw_sensor(self, sensor, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
         fc = kwargs.pop('fc', 'r')
         ec = kwargs.pop('ec', 'r')
@@ -120,8 +119,7 @@ class Drawer(BaseDrawer):
 
         d = self.items[(ax, key)]
 
-        mtx = transforms.pose_in_world(robot.pose)
-        tr = mplt.Affine2D(matrix=mtx) + ax.transData
+        tr = mplt.Affine2D(matrix=sensor.transform_to_world) + ax.transData
         d['w'].set_transform(tr)
         
         return d['w'],
@@ -139,6 +137,9 @@ class Drawer(BaseDrawer):
             self.items[(ax, key)] = dict(im=im)
 
         d = self.items[(ax, key)]
+
+        tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData
         d['im'].set_data(grid.values)
+        d['im'].set_transform(tr)
 
         return d['im'],

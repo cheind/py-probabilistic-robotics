@@ -1,13 +1,18 @@
 import numpy as np
+
 from robots.bbox import safe_invdir
+from robots.posenode import PoseNode
 
-class Grid:
+class Grid(PoseNode):
 
-    def __init__(self, values, bbox):
+    def __init__(self, values, bbox, **kwargs):
         self.values = np.asarray(values)
         self.bbox = bbox
         self.resolution = np.asarray(self.values.shape)
         self.cellsize = (bbox.maxcorner - bbox.mincorner) / self.resolution
+
+        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
+        super(Grid, self).__init__(pose=pose)
 
     @property
     def mincorner(self):

@@ -2,33 +2,16 @@
 import numpy as np
 import math
 
-from robots import transforms
-
-class RobotBase:
-
-    @property 
-    def pose(self):
-        """Return the pose vector of the robot."""
-        raise NotImplementedError  
-
-    @property
-    def robot_in_world(self):
-        return transforms.pose_in_world(self.pose)
-
-    @property
-    def world_in_robot(self):
-        return transforms.world_in_pose(self.pose)
+from robots.posenode import PoseNode
 
 
-class XYPhiRobot(RobotBase):
+class XYPhiRobot(PoseNode):
 
-    def __init__(self, **kwargs):
-        self.state = np.array(kwargs.pop('state', [0.,0.,0.]), dtype=float)
+    def __init__(self, **kwargs):        
         self.motion_err = np.array(kwargs.pop('err', [0., 0.]), dtype=float)
 
-    @property
-    def pose(self):
-        return self.state
+        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
+        super(XYPhiRobot, self).__init__(pose=pose)
 
     def move(self, motion, **kwargs):
         """Move robot by first turning and then driving along the robot's x-axis."""
@@ -38,9 +21,9 @@ class XYPhiRobot(RobotBase):
         e = np.random.randn(2)
         e *= sigma
 
-        phi = self.state[2] + motion[0] + e[0]
-        self.state[0] += math.cos(phi) * (motion[1] + e[1])
-        self.state[1] += math.sin(phi) * (motion[1] + e[1])
-        self.state[2] = phi
+        phi = self.pose[2] + motion[0] + e[0]
+        self.pose[0] += math.cos(phi) * (motion[1] + e[1])
+        self.pose[1] += math.sin(phi) * (motion[1] + e[1])
+        self.pose[2] = phi
         
 

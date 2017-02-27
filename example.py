@@ -1,6 +1,7 @@
 
 
 import numpy as np
+from robots.posenode import PoseNode
 from robots.robots import XYPhiRobot
 from robots.grid import Grid
 from robots.sensors import LandmarkSensor, LidarSensor
@@ -13,25 +14,30 @@ import math
 
 if __name__ == '__main__':
 
-    # Define the collision map
     bbox = BBox([0,0], [10,10])
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
     mask[:, 0] = 1. 
-    mask[6, 5] = 1.  
-    grid = Grid(mask, bbox)
+    mask[6, 5] = 1.    
+    world = Grid(mask, bbox)
 
+    
     # Landmarks in world space
     landmarks = np.array([
         [3, 5, 6],
         [3, 8, 1]
     ], dtype=float)
 
-    # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=grid)
-
     # Virtual x,y,phi robot
-    robot = XYPhiRobot(state=[-1,4,0], err=[0., 0.])   
+    robot = XYPhiRobot(pose=[-1,4,0], err=[0., 0.]) 
+    world['robot'] = robot  
+
+    # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
+    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=world)
+    world['robot']['sensor'] = sensor
+
+    lidar = LidarSensor(world, fov=math.pi/4, maxdist=5., frame='world', pose=[0,0,math.pi])
+    world['robot']['lidar'] = lidar
 
     drawer = Drawer()
     fig, ax = plt.subplots()
@@ -39,28 +45,29 @@ if __name__ == '__main__':
     ax.set_ylim([-5, 15])
     ax.set_aspect('equal')
     ax.grid()
-
-    drawer.draw_grid(grid, ax, alpha=0.5)
-    drawer.draw_points(landmarks, ax, key='landmarks')
-
-    lidar = LidarSensor(grid, fov=math.pi/4, maxdist=5., frame='world')
-
+    
+    drawer.draw_grid(world, ax, alpha=0.5)
     def update(i):
         robot.move([0.02, 0.1])
-        mask, bearings = sensor.sense(robot)
-        colors = ['g' if m else 'b' for m in mask] # Visible landmarks are colored green
 
-        u = drawer.draw_robot(robot, ax, key='robot', radius=0.5)
-        u += drawer.draw_sensor(robot, sensor, ax, key='sensor')
+        # First sensor
+        mask, bearings = sensor.sense()
+        colors = ['g' if m else 'b' for m in mask]
+        u = drawer.draw_robot(robot, ax, key='robot', radius=0.5)        
+        u += drawer.draw_sensor(sensor, ax, key='sensor')        
         u += drawer.draw_points(landmarks, ax, fc=colors, key='landmarks')
-
-        mask, points = lidar.sense(robot)
+        
+        # Second sensor
+        mask, points = lidar.sense()        
         points = points[:, np.where(mask)[0]]
-        u += drawer.draw_points(points, ax, marker='o', key='lidar')
+        u += drawer.draw_points(points, ax, marker='o', key='lidarpoints', transform=lidar.transform_to_world)
+        u += drawer.draw_sensor(lidar, ax, key='lidar')        
 
+        """
         ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
         if ret:
             print('robot collision')
+        """
 
         return u
 

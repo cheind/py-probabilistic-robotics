@@ -58,3 +58,6 @@ def rigid_inverse(m):
     mnew[:2, 2] = -np.dot(r, t)
 
     return mnew
+
+def pose_from_transform(m):
+    return np.array([m[0,2], m[1,2], math.atan2(m[1,0], m[0,0])])

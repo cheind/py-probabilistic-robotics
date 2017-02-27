@@ -7,7 +7,7 @@ from robots import transforms
 class PoseNode:
 
     def __init__(self, pose=[0,0,0], parent=None):
-        self.node_parent = None
+        self.node_parent = parent
         self.node_children = {}
         self.pose = np.asarray(pose, dtype=float)
 

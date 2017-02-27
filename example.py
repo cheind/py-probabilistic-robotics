@@ -31,9 +31,7 @@ if __name__ == '__main__':
     sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=grid)
 
     # Virtual x,y,phi robot
-    robot = XYPhiRobot(state=[-1,4,0], err=[0., 0.])
-    #robot = XYPhiRobot(state=[0.66451761, 4.30289149, 0.34], err=[0., 0.])
-     
+    robot = XYPhiRobot(state=[-1,4,0], err=[0., 0.])   
 
     drawer = Drawer()
     fig, ax = plt.subplots()
@@ -45,7 +43,7 @@ if __name__ == '__main__':
     drawer.draw_grid(grid, ax, alpha=0.5)
     drawer.draw_points(landmarks, ax, key='landmarks')
 
-    lidar = LidarSensor(grid, fov=math.pi/4, maxdist=5.)
+    lidar = LidarSensor(grid, fov=math.pi/4, maxdist=5., frame='world')
 
     def update(i):
         robot.move([0.02, 0.1])
@@ -56,10 +54,9 @@ if __name__ == '__main__':
         u += drawer.draw_sensor(robot, sensor, ax, key='sensor')
         u += drawer.draw_points(landmarks, ax, fc=colors, key='landmarks')
 
-        
         mask, points = lidar.sense(robot)
         points = points[:, np.where(mask)[0]]
-        u += drawer.draw_points(points, ax, transform=robot.robot_in_world, marker='o', key='lidar')
+        u += drawer.draw_points(points, ax, marker='o', key='lidar')
 
         ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
         if ret:

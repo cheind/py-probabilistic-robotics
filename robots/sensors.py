@@ -2,6 +2,7 @@ import numpy as np
 import math
 
 from robots import transforms
+from robots.frames import Frame
 
 class LandmarkSensor:
 
@@ -12,6 +13,7 @@ class LandmarkSensor:
         self.measure = kwargs.pop('measure', 'position')
         self.environment = kwargs.pop('environment', None)
         self.landmarks = transforms.h(landmarks)
+        self.frame = Frame(kwargs.pop('frame', 'robot'))
 
     def sense(self, robot, **kwargs):        
         sense_err = kwargs.pop('err', self.sense_err)
@@ -20,7 +22,7 @@ class LandmarkSensor:
         
         # Transform into robot space
         pose = robot.pose
-        tl = np.dot(transforms.world_in_pose(pose), self.landmarks)
+        tl = np.dot(robot.world_in_robot, self.landmarks)
         tl = transforms.hnorm(tl)
 
         # Add noise to measurement
@@ -49,7 +51,10 @@ class LandmarkSensor:
                 mask[i] = t > n
 
         if measure == 'position':
-            return mask, tl
+            if self.frame == Frame.Robot:                
+                return mask, tl
+            elif self.frame == Frame.World:
+                return mask, transforms.transform(robot.robot_in_world, tl)
         elif measure == 'bearing':
             return mask, angles
         elif measure == 'distance':
@@ -69,6 +74,7 @@ class LidarSensor:
         self.angular_res = kwargs.pop('angular_resolution', 0.1)        
         self.angles = np.arange(-self.fov/2, self.fov/2, self.angular_res)
         self.sense_err = kwargs.pop('err', 0)
+        self.frame = Frame(kwargs.pop('frame', 'robot'))
 
     def sense(self, robot, **kwargs):
         sense_err = kwargs.pop('err', self.sense_err)
@@ -85,5 +91,7 @@ class LidarSensor:
                 points[:, i] = pose[:2] + t * d
                 mask[i] = True
 
-        points = transforms.transform(robot.world_in_robot, points)
+        if self.frame == Frame.Robot:
+            points = transforms.transform(robot.world_in_robot, points)
+
         return mask, points

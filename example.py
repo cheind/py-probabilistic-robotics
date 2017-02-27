@@ -3,7 +3,7 @@
 import numpy as np
 from robots.robots import XYPhiRobot
 from robots.grid import Grid
-from robots.sensors import LandmarkSensor
+from robots.sensors import LandmarkSensor, LidarSensor
 from robots.bbox import BBox
 from robots.draw import Drawer
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
     mask[:, 0] = 1. 
-    mask[5, 5] = 1.  
+    mask[6, 5] = 1.  
     grid = Grid(mask, bbox)
 
     # Landmarks in world space
@@ -28,11 +28,12 @@ if __name__ == '__main__':
     ], dtype=float)
 
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', obstacles=grid)
+    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=grid)
 
     # Virtual x,y,phi robot
-    robot = XYPhiRobot(state=[-1,4,0])
-
+    robot = XYPhiRobot(state=[-1,4,0], err=[0., 0.])
+    #robot = XYPhiRobot(state=[0.66451761, 4.30289149, 0.34], err=[0., 0.])
+     
 
     drawer = Drawer()
     fig, ax = plt.subplots()
@@ -42,7 +43,9 @@ if __name__ == '__main__':
     ax.grid()
 
     drawer.draw_grid(grid, ax, alpha=0.5)
-    drawer.draw_landmarks(landmarks, ax, key='landmarks')
+    drawer.draw_points(landmarks, ax, key='landmarks')
+
+    lidar = LidarSensor(grid, fov=math.pi/4, maxdist=5.)
 
     def update(i):
         robot.move([0.02, 0.1])
@@ -50,8 +53,13 @@ if __name__ == '__main__':
         colors = ['g' if m else 'b' for m in mask] # Visible landmarks are colored green
 
         u = drawer.draw_robot(robot, ax, key='robot', radius=0.5)
-        u += drawer.draw_landmark_sensor(robot, sensor, ax, key='sensor')
-        u += drawer.draw_landmarks(landmarks, ax, fc=colors, key='landmarks')
+        u += drawer.draw_sensor(robot, sensor, ax, key='sensor')
+        u += drawer.draw_points(landmarks, ax, fc=colors, key='landmarks')
+
+        
+        mask, points = lidar.sense(robot)
+        points = points[:, np.where(mask)[0]]
+        u += drawer.draw_points(points, ax, transform=robot.robot_in_world, marker='o', key='lidar')
 
         ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
         if ret:

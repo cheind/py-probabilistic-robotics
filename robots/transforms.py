@@ -16,6 +16,16 @@ def hnorm(x, axis=0, skip_division=False):
         h = x[selh]
         return x[selx] / h
 
+def rigid_inverse(m):
+    t = m[:2, 2]
+    r = m[:2, :2].T
+
+    mnew = np.eye(3)
+    mnew[:2, :2] = r
+    mnew[:2, 2] = -np.dot(r, t)
+
+    return mnew
+
 def pose_in_world(pose):
     """Returns a 3x3 matrix representing the pose vector in world space."""
 
@@ -30,16 +40,8 @@ def pose_in_world(pose):
 
 def world_in_pose(pose):
     """Returns a 3x3 matrix representing the world in space defined by pose."""
-
-    c = math.cos(pose[2])
-    s = math.sin(pose[2])
-
-    return np.array([
-        [c, s, -(c * pose[0] + s * pose[1])],
-        [-s, c, -(-s * pose[0] + c * pose[1])],
-        [0, 0., 1]
-    ])
-
+    return rigid_inverse(pose_in_world(pose))
+    
 def transform(m, x, hvalue=1.):
     needh = x.shape[0] == 2
     if needh:
@@ -48,16 +50,6 @@ def transform(m, x, hvalue=1.):
     if needh:
         x = hnorm(x, skip_division=True)
     return x
-
-def rigid_inverse(m):
-    t = m[:2, 2]
-    r = m[:2, :2].T
-
-    mnew = np.eye(3)
-    mnew[:2, :2] = r
-    mnew[:2, 2] = -np.dot(r, t)
-
-    return mnew
 
 def pose_from_transform(m):
     return np.array([m[0,2], m[1,2], math.atan2(m[1,0], m[0,0])])

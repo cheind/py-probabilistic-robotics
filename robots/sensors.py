@@ -54,11 +54,11 @@ class LandmarkSensor(PoseNode):
                 mask[i] = t > n
 
         if measure == 'position':
-            return mask, tl
+            return mask, noisy_landmarks
         elif measure == 'bearing':
             return mask, angles
         elif measure == 'distance':
-            dists = np.linalg.norm(tl, axis=0)
+            dists = np.linalg.norm(noisy_landmarks, axis=0)
             return mask, dists
         else:
             raise ValueError('Unknown measure type')

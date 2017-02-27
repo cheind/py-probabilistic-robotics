@@ -77,3 +77,14 @@ def test_transform_points_vectors():
         [1, 1]
     ], dtype=float)
     np.testing.assert_allclose(transforms.transform(m, points), np.array([[10, 15], [0, -5], [1,1]]))
+
+
+def test_rigid_inverse():
+    m = transforms.pose_in_world([10, 0, math.pi/2])
+    i = transforms.rigid_inverse(m)
+    np.testing.assert_allclose(np.dot(m, i), np.eye(3), atol=1e-4)
+
+def test_pose_from_transform():
+    m = transforms.pose_in_world([10, 0, math.pi/2])
+    p = transforms.pose_from_transform(m)
+    np.testing.assert_allclose(p, [10, 0, math.pi/2], atol=1e-4)

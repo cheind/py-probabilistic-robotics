@@ -67,24 +67,29 @@ class Drawer(BaseDrawer):
 
         return updated
 
-    def draw_landmarks(self, landmarks, ax, **kwargs):
+    def draw_points(self, points, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
         
         size = kwargs.pop('size', 80)
         fc = kwargs.pop('fc', 'b')
         ec = kwargs.pop('ec', 'none')
         with_labels = kwargs.pop('with_labels', False)
+        marker = kwargs.pop('marker', (5, 1))
         zorder = kwargs.pop('zorder', 4)
+        t = kwargs.pop('transform', None)
+
+        if t is not None:
+            points = transforms.transform(t, points, hvalue=1.)
 
         if (ax, key) not in self.items:
-            scat = ax.scatter(landmarks[0], landmarks[1], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=(5, 1))                   
+            scat = ax.scatter(points[0], points[1], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
             self.items[(ax, key)] = dict(scatter=scat)
 
         updated=[]
         
         d = self.items[(ax, key)]
         scat = d['scatter']
-        scat.set_offsets(landmarks.T)
+        scat.set_offsets(points.T)
         scat.set_zorder(zorder)
         scat.set_facecolors(fc)
         scat.set_edgecolors(ec)
@@ -100,8 +105,9 @@ class Drawer(BaseDrawer):
                     a.set_position((landmarks[0,i], landmarks[1,i]))
                 updated.extend(ann)
         return updated
+        
 
-    def draw_landmark_sensor(self, robot, sensor, ax, **kwargs):
+    def draw_sensor(self, robot, sensor, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
         fc = kwargs.pop('fc', 'r')
         ec = kwargs.pop('ec', 'r')
@@ -120,6 +126,7 @@ class Drawer(BaseDrawer):
         
         return d['w'],
 
+
     def draw_grid(self, grid, ax, **kwargs):
         key = kwargs.pop('key', self.genkey())
         cmap = kwargs.pop('cmap', 'gray_r')
@@ -128,29 +135,10 @@ class Drawer(BaseDrawer):
         alpha = kwargs.pop('alpha', 1)
 
         if (ax, key) not in self.items:
-            im = ax.imshow(grid.values, interpolation=interp, alpha=alpha, cmap=cmap, extent=[grid.mincorner[0], grid.maxcorner[0], grid.mincorner[1], grid.maxcorner[1]], zorder=zorder)
+            im = ax.imshow(grid.values, origin='lower', interpolation=interp, alpha=alpha, cmap=cmap, extent=[grid.mincorner[0], grid.maxcorner[0], grid.mincorner[1], grid.maxcorner[1]], zorder=zorder)
             self.items[(ax, key)] = dict(im=im)
 
         d = self.items[(ax, key)]
         d['im'].set_data(grid.values)
 
         return d['im'],
-       
-
-"""
-class RayDrawer(BaseDrawer):
-
-    def draw(self, o, d, t, ax, **kwargs):
-        key = kwargs.pop('key', self.genkey())        
-        zorder = kwargs.pop('zorder', 3)
-
-        if (ax, key) not in self.items:
-            lines = LineCollection()
-            im = ax.imshow(values, interpolation=interp, cmap=camp, extent=grid.bounds.reshape(1,-1))
-            self.items[(ax, key)] = dict(im=im)
-
-        d = self.items[(ax, key)]
-        d['im'].set_data(values)
-
-        return d,
-"""

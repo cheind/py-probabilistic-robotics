@@ -3,7 +3,6 @@ import numpy as np
 from robots import transforms
 
 def test_hom():
-
     a = np.array([[2, 3, 5], [3, 4, 6]])
 
     np.testing.assert_allclose(
@@ -37,7 +36,7 @@ def test_hnorm():
         np.array([[2, 4, 6], [8, 4, 6]]))
 
 def test_pose_transforms():   
-    k = transforms.pose_in_world([10, 0, math.pi/2])
+    k = transforms.transform_from_pose([10, 0, math.pi/2])
     np.testing.assert_allclose(
         k,
         np.array([
@@ -48,21 +47,8 @@ def test_pose_transforms():
         atol=1e-4
     )
 
-    k = transforms.world_in_pose([10, 0, math.pi/2])
-
-    m = np.eye(3)
-    m[0:2,0:2] = [[0, -1], [1, 0]]
-    m[0:2,2] = [10, 0]
-    m = np.linalg.inv(m)
-
-    np.testing.assert_allclose(
-        k,
-        m,
-        atol=1e-4
-    )
-
 def test_transform_points_vectors():
-    m = transforms.pose_in_world([10, 0, math.pi/2])
+    m = transforms.transform_from_pose([10, 0, math.pi/2])
     points = np.array([
         [0, -5],
         [0, -5]
@@ -80,11 +66,11 @@ def test_transform_points_vectors():
 
 
 def test_rigid_inverse():
-    m = transforms.pose_in_world([10, 0, math.pi/2])
+    m = transforms.transform_from_pose([10, 0, math.pi/2])
     i = transforms.rigid_inverse(m)
     np.testing.assert_allclose(np.dot(m, i), np.eye(3), atol=1e-4)
 
 def test_pose_from_transform():
-    m = transforms.pose_in_world([10, 0, math.pi/2])
+    m = transforms.transform_from_pose([10, 0, math.pi/2])
     p = transforms.pose_from_transform(m)
     np.testing.assert_allclose(p, [10, 0, math.pi/2], atol=1e-4)

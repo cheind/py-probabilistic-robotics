@@ -26,7 +26,7 @@ def rigid_inverse(m):
 
     return mnew
 
-def pose_in_world(pose):
+def transform_from_pose(pose):
     """Returns a 3x3 matrix representing the pose vector in world space."""
 
     c = math.cos(pose[2])
@@ -38,10 +38,9 @@ def pose_in_world(pose):
         [0, 0., 1]
     ])
 
-def world_in_pose(pose):
-    """Returns a 3x3 matrix representing the world in space defined by pose."""
-    return rigid_inverse(pose_in_world(pose))
-    
+def pose_from_transform(m):
+    return np.array([m[0,2], m[1,2], math.atan2(m[1,0], m[0,0])])
+
 def transform(m, x, hvalue=1.):
     needh = x.shape[0] == 2
     if needh:
@@ -50,6 +49,3 @@ def transform(m, x, hvalue=1.):
     if needh:
         x = hnorm(x, skip_division=True)
     return x
-
-def pose_from_transform(m):
-    return np.array([m[0,2], m[1,2], math.atan2(m[1,0], m[0,0])])

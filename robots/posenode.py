@@ -31,11 +31,11 @@ class PoseNode:
 
     @property
     def transform_to_parent(self):
-        return transforms.pose_in_world(self.pose)
+        return transforms.transform_from_pose(self.pose)
 
     @property
     def transform_from_parent(self):
-        return transforms.world_in_pose(self.pose)
+        return transforms.rigid_inverse(self.transform_to_parent)
 
     @property
     def transform_to_world(self):

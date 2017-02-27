@@ -2,12 +2,22 @@
 import numpy as np
 import math
 
+from robots import transforms
+
 class RobotBase:
 
     @property 
     def pose(self):
         """Return the pose vector of the robot."""
         raise NotImplementedError  
+
+    @property
+    def robot_in_world(self):
+        return transforms.pose_in_world(self.pose)
+
+    @property
+    def world_in_robot(self):
+        return transforms.world_in_pose(self.pose)
 
 
 class XYPhiRobot(RobotBase):

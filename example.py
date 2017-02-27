@@ -60,7 +60,7 @@ if __name__ == '__main__':
         # Second sensor
         mask, points = lidar.sense()        
         points = points[:, np.where(mask)[0]]
-        u += drawer.draw_points(points, ax, marker='o', key='lidarpoints', transform=lidar.transform_to_world)
+        u += drawer.draw_points(points, ax, marker='o', key='lidars', transform=lidar.transform_to_world)
         u += drawer.draw_sensor(lidar, ax, key='lidar')        
 
         """

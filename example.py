@@ -58,14 +58,12 @@ if __name__ == '__main__':
         # Second sensor
         mask, points = lidar.sense()        
         points = points[:, np.where(mask)[0]]
-        u += drawer.draw_points(points, ax, marker='o', transform=lidar.transform_to_world, key='lidar')
-        u += drawer.draw_sensor(lidar, ax)     
+        u += drawer.draw_points(points, ax, size=5, marker='o', transform=lidar.transform_to_world, key='lidar') # need to use drawing key as points is always a new object
+        u += drawer.draw_sensor(lidar, ax, fc='green', ec='green')     
 
-        """
-        ret, cell = grid.intersect_with_circle(robot.state[:2], 0.5)
+        ret, cell = world.intersect_with_circle(robot.pose[:2], 0.5)
         if ret:
             print('robot collision')
-        """
 
         return u
 

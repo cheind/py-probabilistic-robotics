@@ -13,13 +13,11 @@ import math
 
 
 if __name__ == '__main__':
-
-    bbox = BBox([0,0], [10,10])
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
     mask[:, 0] = 1. 
     mask[6, 5] = 1.    
-    world = Grid(mask, bbox)
+    world = Grid(mask, [0,0], [10,10])
 
     
     # Landmarks in world space

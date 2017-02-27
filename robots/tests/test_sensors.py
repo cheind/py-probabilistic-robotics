@@ -31,11 +31,9 @@ def test_landmark_sensor():
     assert mask.all()
 
 def test_lidar_sensor():
-
-    bbox = BBox([0,0], [10,10])
     mask = np.zeros((10, 10))
     mask[:, -1] = 1. 
-    grid = Grid(mask, bbox)
+    grid = Grid(mask, [0,0], [10,10])
 
     r = XYPhiRobot(pose=[5, 5, 0])
 

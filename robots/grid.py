@@ -1,30 +1,19 @@
 import numpy as np
 
+from robots.bbox import BBox
 from robots.bbox import safe_invdir
 from robots.posenode import PoseNode
 
 class Grid(PoseNode):
 
-    def __init__(self, values, bbox, **kwargs):
+    def __init__(self, values, mincorner, maxcorner, **kwargs):
         self.values = np.asarray(values)
-        self.bbox = bbox
+        self.bbox = BBox(mincorner, maxcorner)
         self.resolution = np.asarray(self.values.shape)
-        self.cellsize = (bbox.maxcorner - bbox.mincorner) / self.resolution
+        self.cellsize = (self.bbox.maxcorner - self.bbox.mincorner) / self.resolution
 
         pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
         super(Grid, self).__init__(pose=pose)
-
-    @property
-    def mincorner(self):
-        return self.bbox.mincorner
-
-    @property
-    def maxcorner(self):
-        return self.bbox.maxcorner
-
-    @property
-    def bounds(self):
-        return self.bbox.bounds
 
     def intersect_with_ray(self, o, d, tmax=None, hitmask=None):
         """Returns the intersection of a ray and grid.
@@ -82,7 +71,6 @@ class Grid(PoseNode):
     def intersect_with_circle(self, center, radius, hitmask=None):
         if hitmask is None:
             hitmask = self.values
-
 
         c_min = np.clip(self.cell_floor(center - [radius, radius]), 0, self.resolution - 1)
         c_max = np.clip(self.cell_ceil(center + [radius, radius]), 0, self.resolution - 1)

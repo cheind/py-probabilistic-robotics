@@ -1,12 +1,18 @@
 import numpy as np
 
+from robots.posenode import PoseNode
+
 def safe_invdir(d):
     with np.errstate(divide='ignore'):
         return np.where(d == 0., 1e12, 1./d)
 
-class BBox:
-    def __init__(self, mincorner, maxcorner):
+class BBox(PoseNode):
+
+    def __init__(self, mincorner, maxcorner, **kwargs):
         self.bounds = np.column_stack((mincorner, maxcorner)).astype(float)
+
+        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
+        super(BBox, self).__init__(pose=pose)
         
     @property
     def mincorner(self):

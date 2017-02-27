@@ -7,14 +7,12 @@ from robots.grid import Grid
 from robots.bbox import BBox
 
 def test_ray_grid():
-    
-    bbox = BBox([0,0], [10,10])
-
+        
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
     mask[:, 0] = 1.    
 
-    grid = Grid(mask, bbox)
+    grid = Grid(mask, [0,0], [10,10])
 
     o = np.array([-2, 0])
     d = np.array([1, 0])
@@ -67,13 +65,11 @@ def test_ray_grid():
     assert (cell == [9,9]).all()
 
 def test_intersect_circle():
-    bbox = BBox([1,1], [10,10])
-
     mask = np.zeros((10, 10))
     mask[:, -1] = 1.
     mask[:, 0] = 1.    
 
-    grid = Grid(mask, bbox)
+    grid = Grid(mask, [1,1], [10,10])
 
     ret, cell = grid.intersect_with_circle(np.array([1.5, 1.5]), 0.1)    
     assert ret

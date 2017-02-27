@@ -133,7 +133,15 @@ class Drawer(BaseDrawer):
         alpha = kwargs.pop('alpha', 1)
 
         if (ax, key) not in self.items:
-            im = ax.imshow(grid.values, origin='lower', interpolation=interp, alpha=alpha, cmap=cmap, extent=[grid.mincorner[0], grid.maxcorner[0], grid.mincorner[1], grid.maxcorner[1]], zorder=zorder)
+            bbox = grid.bbox
+            im = ax.imshow(
+                grid.values, 
+                origin='lower', 
+                interpolation=interp, 
+                alpha=alpha, 
+                cmap=cmap, 
+                extent=[bbox.mincorner[0], bbox.maxcorner[0], bbox.mincorner[1], bbox.maxcorner[1]], 
+                zorder=zorder)                
             self.items[(ax, key)] = dict(im=im)
 
         d = self.items[(ax, key)]

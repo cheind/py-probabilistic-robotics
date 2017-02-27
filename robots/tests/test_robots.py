@@ -4,33 +4,6 @@ from pytest import approx
 
 from robots.robots import XYPhiRobot
 
-def test_robot_transforms():   
-    r = XYPhiRobot(state=[10, 0, math.pi/2]) 
-
-    k = r.robot_in_world()
-    np.testing.assert_allclose(
-        k,
-        np.array([
-            [0, -1, 10],
-            [1, 0, 0],
-            [0, 0, 1],
-        ]),
-        atol=1e-4
-    )
-
-    k = r.world_in_robot()
-
-    m = np.eye(3)
-    m[0:2,0:2] = [[0, -1], [1, 0]]
-    m[0:2,2] = [10, 0]
-    m = np.linalg.inv(m)
-
-    np.testing.assert_allclose(
-        k,
-        m,
-        atol=1e-4
-    )
-
 def test_xyphi_pose():
      r = XYPhiRobot(state=[10, 0, math.pi/2]) 
      np.testing.assert_allclose(r.pose, [10, 0, math.pi/2])

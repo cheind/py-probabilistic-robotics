@@ -7,35 +7,7 @@ class RobotBase:
     @property 
     def pose(self):
         """Return the pose vector of the robot."""
-        raise NotImplementedError
-
-    def robot_in_world(self):
-        """Returns a 3x3 matrix representing the robot's location in world space."""
-
-        pose = self.pose
-        c = math.cos(pose[2])
-        s = math.sin(pose[2])
-
-        return np.array([
-            [c, -s, pose[0]],
-            [s, c, pose[1]],
-            [0, 0., 1]
-        ])
-
-    def world_in_robot(self, **kwargs):
-        """Returns a 3x3 matrix representing the world in robot space."""
-        
-        pose = self.pose
-
-        c = math.cos(pose[2])
-        s = math.sin(pose[2])
-
-        return np.array([
-            [c, s, -(c * pose[0] + s * pose[1])],
-            [-s, c, -(-s * pose[0] + c * pose[1])],
-            [0, 0., 1]
-        ])
-    
+        raise NotImplementedError  
 
 
 class XYPhiRobot(RobotBase):

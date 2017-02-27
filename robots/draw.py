@@ -5,6 +5,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Wedge
 from matplotlib.collections import LineCollection
 import matplotlib.transforms as mplt
+from robots import transforms
 
 class BaseDrawer:
     def __init__(self):
@@ -48,7 +49,7 @@ class Drawer(BaseDrawer):
 
         if with_axis:
 
-            mtx = robot.robot_in_world()
+            mtx = transforms.pose_in_world(robot.pose)
             tr = mplt.Affine2D(matrix=mtx) + ax.transData
 
             d['lx'].set_xdata([0., radius])
@@ -113,7 +114,7 @@ class Drawer(BaseDrawer):
 
         d = self.items[(ax, key)]
 
-        mtx = robot.robot_in_world()
+        mtx = transforms.pose_in_world(robot.pose)
         tr = mplt.Affine2D(matrix=mtx) + ax.transData
         d['w'].set_transform(tr)
         

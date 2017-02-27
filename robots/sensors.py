@@ -11,7 +11,7 @@ class LandmarkSensor:
         self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)
         self.measure = kwargs.pop('measure', 'position')
         self.obstacles = kwargs.pop('obstacles', None)
-        self.landmarks = transforms.hom(landmarks)
+        self.landmarks = transforms.h(landmarks)
 
     def sense(self, robot, **kwargs):        
         sense_err = kwargs.pop('err', self.sense_err)
@@ -19,7 +19,8 @@ class LandmarkSensor:
         measure = kwargs.pop('measure', self.measure)
         
         # Transform into robot space
-        tl = np.dot(robot.world_in_robot(), self.landmarks)
+        pose = robot.pose
+        tl = np.dot(transforms.world_in_pose(pose), self.landmarks)
         tl = transforms.hnorm(tl)
 
         # Add noise to measurement

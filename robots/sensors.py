@@ -198,7 +198,7 @@ class LidarSensor(PoseNode):
         self.sense_err = kwargs.pop('err', 0)
         self.fov = kwargs.pop('fov', 2 * math.pi)
         self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)    
-        angles = kwargs.pop('angular_resolution', 0.1)  
+        angular_res = kwargs.pop('angular_resolution', 0.1)  
         self.angles = np.arange(-self.fov/2, self.fov/2, angular_res)
         
         pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)

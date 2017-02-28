@@ -119,7 +119,7 @@ class Drawer(BaseDrawer):
         zorder = kwargs.pop('zorder', 3)
 
         if (ax, key) not in self.items:
-            w = Wedge((0,0), min(sensor.maxdist, 100), -math.degrees(sensor.fov/2), math.degrees(sensor.fov/2), fc=fc, ec=ec, alpha=0.5, zorder=zorder)
+            w = Wedge((0,0), min(sensor.maxdist, 1000), -math.degrees(sensor.fov/2), math.degrees(sensor.fov/2), fc=fc, ec=ec, alpha=0.5, zorder=zorder)
             ax.add_artist(w)
             self.items[(ax, key)] = dict(w=w)
 

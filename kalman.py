@@ -18,6 +18,8 @@ class Kalman:
         self.true_state = true_state.copy()    
         self.x = x.copy()
         self.P = P.copy()
+        self.landmarks_seen = np.zeros(((x.shape[0] - 2) // 2, 1), dtype=np.bool)
+        self.landmarks_seen[0] = True
         
         self.F = np.eye(x.shape[0])
         self.B = np.zeros((x.shape[0], 2))
@@ -40,9 +42,21 @@ class Kalman:
     def predict(self, u):
         self.x = self.F.dot(self.x) + self.B.dot(u)
         self.P = self.F.dot(self.P).dot(self.F.T) + self.Q
-        
-    def update(self, landmark_mask, landmark_pos):   
+
+    def update(self, landmark_mask, landmark_pos):
+        def to_state_mask(a):
+            return np.hstack((a, a)).reshape(-1)
+
         z = landmark_pos.reshape((-1, 1), order='F')
+        z_mask = to_state_mask(~self.landmarks_seen[landmark_mask])
+        n = np.sum(z_mask)
+        if n:
+            print('init {}'.format(n))
+            pos = np.repeat(self.x[:2], n // 2, axis=0)
+            init_mask = np.logical_and(~self.landmarks_seen, np.expand_dims(landmark_mask, 1))
+            init_mask_state = np.hstack(([False, False], to_state_mask(init_mask)))
+            self.x[init_mask_state] = pos + z[z_mask]
+            self.landmarks_seen = np.logical_or(self.landmarks_seen, init_mask)
 
         lm = landmark_mask.copy()
         lm = np.vstack((lm, lm)).reshape(-1, order='F')
@@ -99,7 +113,6 @@ if __name__ == '__main__':
     # we know nothing but the first landmark!
     x = np.zeros(true_state.shape)
     x[2:4] = true_state[2:4]
-    print(x[2:4])
     P = np.eye(true_state.shape[0])
     P[2, 2] = 0.0
     P[3, 3] = 0.0

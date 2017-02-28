@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.patches import Circle
 from matplotlib.lines import Line2D
 from matplotlib.patches import Wedge
-from matplotlib.collections import LineCollection
+from matplotlib.collections import LineCollection, EllipseCollection
 import matplotlib.transforms as mplt
 
 from robots import transforms
@@ -162,42 +162,50 @@ class Drawer(BaseDrawer):
         return updated
 
     
-    def draw_lines(self, start, end, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(start, end))
-        
-        size = kwargs.pop('size', 80)
+
+    def draw_confidence_ellipse(self, u, cov, ax, **kwargs):
+        key = kwargs.pop('key', self.keyfor(u, cov))
+
         fc = kwargs.pop('fc', 'b')
         ec = kwargs.pop('ec', 'none')
-        with_labels = kwargs.pop('with_labels', False)
-        marker = kwargs.pop('marker', (5, 1))
-        zorder = kwargs.pop('zorder', 4)
-        t = kwargs.pop('transform', None)
+        zorder = kwargs.pop('zorder', 1)
 
-        if t is not None:
-            points = transforms.transform(t, points, hvalue=1.)
-
-        if (ax, key) not in self.items:
-            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
-            self.items[(ax, key)] = dict(scatter=scat)
-
-        updated=[]
+        if (ax, key) in self.items:
+            self.items[(ax, key)].remove()        
         
-        d = self.items[(ax, key)]
-        scat = d['scatter']
-        scat.set_offsets(points.T)
-        scat.set_zorder(zorder)
-        scat.set_facecolors(fc)
-        scat.set_edgecolors(ec)
+        u = np.asarray(u)
+        cov = np.asarray(cov).reshape(-1, 2, 2)
 
-        updated.append(scat)
+        n = cov.shape[0]
+        w, v = np.linalg.eig(cov)
+        w = np.abs(w)
+        major = np.argmax(w, axis=1)
+        minor = (major + 1) % 2
 
-        if with_labels:
-            if not 'ann' in d:
-                d['ann'] = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]                    
-                updated.extend(d['ann'])
-            else:
-                ann = d['ann']
-                for i,a in enumerate(ann):
-                    a.set_position((landmarks[0,i], landmarks[1,i]))
-                updated.extend(ann)
-        return updated
+        chisquare_val = 2.4477 # 95%        
+        angles = np.zeros(n)
+        widths = np.zeros(n)
+        heights = np.zeros(n)
+        for i in range(n):
+            angles[i] = math.atan2(v[i, 1, major[i]], v[i, 0, major[i]])
+            widths[i] = 2 * chisquare_val * math.sqrt(w[i, major[i]]) * 10
+            heights[i] = 2 * chisquare_val * math.sqrt(w[i, minor[i]]) * 10
+
+        angles[angles < 0.] += 2 * np.pi # -pi..pi -> 0..2pi
+        
+        e = EllipseCollection(
+            widths, 
+            heights, 
+            np.degrees(angles),
+            units='y', 
+            offsets=u.reshape(2,-1), 
+            transOffset=ax.transData,
+            facecolors=fc,
+            edgecolors=ec,
+            zorder=zorder
+        )
+        ax.add_artist(e)
+
+        self.items[(ax, key)] = e
+
+        return e,

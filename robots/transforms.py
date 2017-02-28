@@ -5,12 +5,17 @@ def h(x, n=1., axis=0):
     """Returns the homogeneous version of given vectors.
 
     Params
-        x : NxM array of vectors
-        n : scalar value to use for padding
-        axis : axis along which padding is performed 0,1
+    ------
+    x : NxM array 
+        Array of row or column vectors
+    n : float
+        Scalar value to use for padding
+    axis : int
+        Axis along which padding is performed [0,1]
 
     Returns
-        y : (N+1)xM array of vectors when axis = 0, else Nx(M+1)
+    -------
+        (N+1)xM array of vectors when axis = 0, else Nx(M+1)
     """
     s = [d if i != axis else 1 for i, d in enumerate(x.shape)]
     h = np.full((s), n)
@@ -20,12 +25,17 @@ def hnorm(x, axis=0, skip_division=False):
     """Returns the normalized, homogeneous undone, version of given vectors.
 
     Params
-        x : NxM array of vectors
-        axis : axis along which normalization is performed 0,1
-        skip_division : when true avoids division by normalizing value
+    ------
+    x : NxM array
+        Array of row or column vectors  
+    axis : int
+        Axis along which normalization is performed 0,1
+    skip_division : bool, optional
+        If true does not perform normalizing division
 
     Returns
-        y : (N-1)xM array of vectors when axis = 0, else Nx(M-1)
+    -------
+        (N-1)xM array of vectors when axis = 0, else Nx(M-1)
     """
     selh = [slice(None) if i != axis else slice(-1, None) for i in range(len(x.shape))]
     selx = [slice(None) if i != axis else slice(-1) for i in range(len(x.shape))]
@@ -40,10 +50,14 @@ def rigid_inverse(m):
     """Returns the inverse of a rigid 3x3 transform.
 
     Params
-        m : 3x3 matrix
+    ------
+    m : 3x3 array
+        Matrix to invert
 
     Returns
-        mnew : 3x3 matrix representing the inverse of the input
+    -------
+    3x3 matrix 
+        Inverse of `m`
     """
     t = m[:2, 2]
     r = m[:2, :2].T
@@ -58,10 +72,15 @@ def transform_from_pose(pose):
     """Returns the 3x3 transform associated with the 3x1 pose vector.
     
     Params
-        pose : 3x1 or 1x3 pose vector representing x, y, phi
+    ------
+    pose : 1x3 array 
+        Pose vector representing x, y, phi
     
     Returns
-        matrix: 3x3 matrix associated with pose
+    -------
+    3x3 matrix
+        Matrix associated with pose
+
     """
     c = math.cos(pose[2])
     s = math.sin(pose[2])
@@ -76,10 +95,14 @@ def pose_from_transform(m):
     """Returns the 1x3 pose vector associated with the given transform matrix.
 
     Params
-        m : 3x3 transform matrix
+    ------
+    m : 3x3 matrix
+        Matrix to extract pose vector from
 
     Returns
-        pose: 1x3 pose vector
+    -------
+    1x3 array
+        Pose vector
     """
     return np.array([m[0,2], m[1,2], math.atan2(m[1,0], m[0,0])])
 
@@ -92,12 +115,18 @@ def transform(m, x, hvalue=1.):
     and 0. for direction like vectors. 
 
     Params
-        m : 3x3 transformation matrix
-        x : 2xN or 3xN list of vectors.
-        hvalue: ambient dimension value used when `x` is of dimension 2xN
+    ------
+    m : 3x3 array
+        Transformation matrix
+    x : 2xN or 3xN array
+        List of vectors.
+    hvalue: float, optional
+        Ambient dimension value used when `x` is of dimension 2xN
 
     Returns
-        y : 2xN or 3xN list of transformed vectors.
+    -------
+    2xN or 3xN array
+        List of transformed vectors.
     """
     needh = x.shape[0] == 2
     if needh:

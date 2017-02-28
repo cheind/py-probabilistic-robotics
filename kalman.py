@@ -65,7 +65,8 @@ class Kalman:
 
 if __name__ == '__main__':
     mask = np.zeros((10, 10))
-    world = Grid(mask, [0,0], [10,10])
+    mask[5:, 5] = True
+    world = Grid(mask, [-20,-20], [120,120])
     
     np.random.seed(0)
     
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     landmarks[:, 0] = robot.transform_to_world[:2, 2]
 
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position')
+    sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position', environment=world)
     world['robot']['sensor'] = sensor
 
     drawer = Drawer()
@@ -157,7 +158,7 @@ if __name__ == '__main__':
 
         return u
 
-    ani = animation.FuncAnimation(fig, update, 200, interval=1, blit=True, repeat=True)
+    ani = animation.FuncAnimation(fig, update, 200, interval=10, blit=True, repeat=True)
     plt.show()
 
 

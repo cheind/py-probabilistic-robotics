@@ -152,13 +152,14 @@ if __name__ == '__main__':
         u = drawer.draw_robot(robot, ax, radius=0.5)        
         u += drawer.draw_sensor(sensor, ax)        
         u += drawer.draw_points(landmarks, ax, fc=colors)
+        u += drawer.draw_confidence_ellipse([landmarks[:, 1], robot.pose[:2]], [k.P[4:6,4:6], k.P[:2,:2]], ax, key='conf')
         
         landmarks2 = k.x[2:].reshape((2, -1), order='F')
-        u += drawer.draw_points(landmarks2, ax, fc='r', zorder=10, marker='.')
+        u += drawer.draw_points(landmarks2, ax, fc='r', zorder=10, marker='.', key='landmarks2')
 
         return u
 
-    ani = animation.FuncAnimation(fig, update, 200, interval=10, blit=True, repeat=True)
+    ani = animation.FuncAnimation(fig, update, 200, interval=30, blit=True, repeat=True)
     plt.show()
 
 

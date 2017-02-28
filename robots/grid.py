@@ -12,18 +12,35 @@ class Grid(PoseNode):
     between filled cells and rays. Grids are often used to
     store obstacle / environment maps. Raytracing can then be used
     to determine visibility of landmarks.
+
+    Attributes
+    ----------
+    values : MxM array 
+        Cell values
+    bbox : BBox
+        Bounding box in local frame
+    resolution : 1x2 array
+        Shape of cell array
+    cellsize : 1x2 array
+        Width and height of each cell
     """
 
     def __init__(self, values, mincorner, maxcorner, **kwargs):
         """Create a Grid.
 
         Params
-            values : MxM array of cell values
-            mincorner : 1x2 minimum corner of grid bounds
-            maxcorner : 1x2 maximum corner of grid bounds
+        ------
+        values : MxM array 
+            Cell values
+        mincorner : 1x2 array
+            Minimum corner of grid bounds
+        maxcorner : 1x2 array
+            Maximum corner of grid bounds
 
         Kwargs
-            pose : (optional) 1x3 pose vector. If omitted identity is assumed.
+        ------
+        pose : 1x3 array, optional
+            Pose vector. If omitted identity is assumed.
         """
         self.values = np.asarray(values)
         self.bbox = BBox(mincorner, maxcorner)
@@ -41,21 +58,28 @@ class Grid(PoseNode):
         is zero.
 
         Params
-            o : 1x3 ray orgin in the coordinate frame of the grid.
-            d : 1x3 unit length ray direction in the coordinate frame of the grid.
-            tmax : (optional) maximum parametric ray time
-            hitmask : (optional) MxM array determining the state of cells. If omitted
-                      self.values is used.
+        ------
+        o : 1x3 array
+            Ray orgin in the coordinate frame of the grid.
+        d : 1x3 array
+            Unit length ray direction in the coordinate frame of the grid.
+        tmax : float, optional
+            Maximum parametric ray time
+        hitmask : MxM array, optional 
+            State of cells. If omitted self.values is used.
         
         Returns
-            ret : boolean indicating whether or not an intersection occurred.
-            t : parametric ray time of intersection
-            cell : 1x2 cell index.
+        -------
+        ret : bool
+            Indicating whether or not an intersection occurred.
+        t : float
+            Parametric ray time of intersection
+        cell : 1x2 array
+            Cell index of intersection
 
-        Based on
-            Amanatides, John, and Andrew Woo. 
-            "A fast voxel traversal algorithm for ray tracing." 
-            Eurographics. Vol. 87. No. 3. 1987.
+        References
+        ----------
+            Amanatides, John, and Andrew Woo. "A fast voxel traversal algorithm for ray tracing." Eurographics. Vol. 87. No. 3. 1987.
         """
 
         ret, tbox, tboxexit = self.bbox.intersect_with_ray(o, d)
@@ -113,14 +137,20 @@ class Grid(PoseNode):
         is zero.
 
         Params
-            center : 1x2 circle center in the coordinate frame of the grid.
-            radius : radius of circle.
-            hitmask : (optional) MxM array determining the state of cells. If omitted
-                      self.values is used.
+        ------
+        center : 1x2 array
+            Circle center in the coordinate frame of the grid.
+        radius : float
+            Radius of circle.
+        hitmask : MxM array, optional
+            State of cells. If omitted self.values is used.
         
         Returns
-            ret : boolean indicating whether or not an intersection occurred.
-            cell : 1x2 cell index.
+        -------
+        ret : bool 
+            Whether or not an intersection occurred.
+        cell : 1x2 array 
+            Cell index of intersection.
         """
 
         if hitmask is None:

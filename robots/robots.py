@@ -4,6 +4,23 @@ import math
 
 from robots.posenode import PoseNode
 
+class XYRobot(PoseNode):
+
+    def __init__(self, **kwargs):
+        self.motion_err = kwargs.pop('err', 0.)
+
+        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
+        super(XYRobot, self).__init__(pose=pose)
+
+    def move(self, motion, **kwargs):
+        """Move robot by first turning and then driving along the robot's x-axis."""
+        motion_err = kwargs.pop('err', self.motion_err)
+        sigma = np.abs(motion) * motion_err
+        e = np.expand_dims(np.random.randn(2), 1)
+        e *= sigma
+
+        self.pose[0] += motion[0] + e[0]
+        self.pose[1] += motion[1] + e[1]
 
 class XYPhiRobot(PoseNode):
     """A robot fully described by its position in x,y and heading phi.

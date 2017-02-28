@@ -50,6 +50,7 @@ def test_lidar_sensor():
     assert np.logical_not(mask).all()
 
 
+def test_landmark_sensor_regression_raytrace():
 
     mask = np.zeros((10, 10))
     world = Grid(mask, [0,0], [10,10])

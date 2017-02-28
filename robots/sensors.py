@@ -131,7 +131,7 @@ class LandmarkSensor(PoseNode):
                 n = np.linalg.norm(d)
                 d /= n
                 ret, t, cell = environment.intersect_with_ray(env_o, d, tmax=n)
-                mask[i] = t > n
+                mask[i] = not ret or t > n
 
         if measure == 'position':
             return mask, noisy_landmarks

@@ -14,13 +14,16 @@ class BaseDrawer:
         self.items = {}
         self.nextkey = 0
 
-    def keyfor(self, obj):
-        if isinstance(obj, (PoseNode, np.ndarray, list, tuple)):
-            return id(obj)
-        else:
-            k = self.nextkey
-            self.nextkey += 1
-            return k
+    def keyfor(self, *objs):
+        hashable = []
+        for obj in objs:
+            if isinstance(obj, (PoseNode, np.ndarray)):
+                hashable.append(id(obj))
+            else:
+                k = self.nextkey
+                hashable.append(k)
+                self.nextkey += 1
+        return tuple(hashable)
 
 class Drawer(BaseDrawer):
 
@@ -70,47 +73,6 @@ class Drawer(BaseDrawer):
 
         return updated
 
-    def draw_points(self, points, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(points))
-        
-        size = kwargs.pop('size', 80)
-        fc = kwargs.pop('fc', 'b')
-        ec = kwargs.pop('ec', 'none')
-        with_labels = kwargs.pop('with_labels', False)
-        marker = kwargs.pop('marker', (5, 1))
-        zorder = kwargs.pop('zorder', 4)
-        t = kwargs.pop('transform', None)
-
-        if t is not None:
-            points = transforms.transform(t, points, hvalue=1.)
-
-        if (ax, key) not in self.items:
-            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
-            self.items[(ax, key)] = dict(scatter=scat)
-
-        updated=[]
-        
-        d = self.items[(ax, key)]
-        scat = d['scatter']
-        scat.set_offsets(points.T)
-        scat.set_zorder(zorder)
-        scat.set_facecolors(fc)
-        scat.set_edgecolors(ec)
-
-        updated.append(scat)
-
-        if with_labels:
-            if not 'ann' in d:
-                d['ann'] = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]                    
-                updated.extend(d['ann'])
-            else:
-                ann = d['ann']
-                for i,a in enumerate(ann):
-                    a.set_position((landmarks[0,i], landmarks[1,i]))
-                updated.extend(ann)
-        return updated
-        
-
     def draw_sensor(self, sensor, ax, **kwargs):
         key = kwargs.pop('key', self.keyfor(sensor))
 
@@ -158,3 +120,84 @@ class Drawer(BaseDrawer):
         d['im'].set_transform(tr)
 
         return d['im'],
+
+    def draw_points(self, points, ax, **kwargs):
+        key = kwargs.pop('key', self.keyfor(points))
+        
+        size = kwargs.pop('size', 80)
+        fc = kwargs.pop('fc', 'b')
+        ec = kwargs.pop('ec', 'none')
+        with_labels = kwargs.pop('with_labels', False)
+        marker = kwargs.pop('marker', (5, 1))
+        zorder = kwargs.pop('zorder', 4)
+        t = kwargs.pop('transform', None)
+
+        if t is not None:
+            points = transforms.transform(t, points, hvalue=1.)
+
+        if (ax, key) not in self.items:
+            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
+            self.items[(ax, key)] = dict(scatter=scat)
+
+        updated=[]
+        
+        d = self.items[(ax, key)]
+        scat = d['scatter']
+        scat.set_offsets(points.T)
+        scat.set_zorder(zorder)
+        scat.set_facecolors(fc)
+        scat.set_edgecolors(ec)
+
+        updated.append(scat)
+
+        if with_labels:
+            if not 'ann' in d:
+                d['ann'] = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]                    
+                updated.extend(d['ann'])
+            else:
+                ann = d['ann']
+                for i,a in enumerate(ann):
+                    a.set_position((landmarks[0,i], landmarks[1,i]))
+                updated.extend(ann)
+        return updated
+
+    
+    def draw_lines(self, start, end, ax, **kwargs):
+        key = kwargs.pop('key', self.keyfor(start, end))
+        
+        size = kwargs.pop('size', 80)
+        fc = kwargs.pop('fc', 'b')
+        ec = kwargs.pop('ec', 'none')
+        with_labels = kwargs.pop('with_labels', False)
+        marker = kwargs.pop('marker', (5, 1))
+        zorder = kwargs.pop('zorder', 4)
+        t = kwargs.pop('transform', None)
+
+        if t is not None:
+            points = transforms.transform(t, points, hvalue=1.)
+
+        if (ax, key) not in self.items:
+            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
+            self.items[(ax, key)] = dict(scatter=scat)
+
+        updated=[]
+        
+        d = self.items[(ax, key)]
+        scat = d['scatter']
+        scat.set_offsets(points.T)
+        scat.set_zorder(zorder)
+        scat.set_facecolors(fc)
+        scat.set_edgecolors(ec)
+
+        updated.append(scat)
+
+        if with_labels:
+            if not 'ann' in d:
+                d['ann'] = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]                    
+                updated.extend(d['ann'])
+            else:
+                ann = d['ann']
+                for i,a in enumerate(ann):
+                    a.set_position((landmarks[0,i], landmarks[1,i]))
+                updated.extend(ann)
+        return updated

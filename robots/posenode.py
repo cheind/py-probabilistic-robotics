@@ -21,6 +21,16 @@ class PoseNode:
         Map of name to PoseNode for each child of this node.
     pose : 1x3 array
         Pose vector of this node with respect to parent frame.
+    root_node : PoseNode
+        Root of the tree
+    transform_to_parent : 3x3 matrix
+        Relative 3x3 transformation between this node and its parent.
+    transform_from_parent : 3x3 matrix
+        Relative 3x3 transformation between this node's parent and this node.
+    transform_to_world : 3x3 matrix
+        Relative 3x3 transformation between this node and the world frame.
+    transform_from_world : 3x3 matrix
+        Relative 3x3 transformation between this the world frame and this node.
     """
 
     def __init__(self, pose=[0,0,0], parent=None):
@@ -75,25 +85,21 @@ class PoseNode:
 
     @property
     def root_node(self):
-        """Returns the root PoseNode of the tree."""
         n = self
         while n.node_parent is not None:
             n = n.node_parent
         return n
 
     @property
-    def transform_to_parent(self):
-        """Returns relative 3x3 transformation between this node and its parent."""        
+    def transform_to_parent(self):    
         return transforms.transform_from_pose(self.pose)
 
     @property
-    def transform_from_parent(self):
-        """Returns relative 3x3 transformation between this node's parent and this node."""        
+    def transform_from_parent(self):        
         return transforms.rigid_inverse(self.transform_to_parent)
 
     @property
     def transform_to_world(self):
-        """Returns the relative 3x3 transformation between this node and the world frame."""
         t = self.transform_to_parent
         n = self.node_parent
         while n is not None:
@@ -103,7 +109,6 @@ class PoseNode:
 
     @property
     def transform_from_world(self):
-        """Returns the relative 3x3 transformation the world frame and this node."""
         t = self.transform_to_world
         return transforms.rigid_inverse(t)
 

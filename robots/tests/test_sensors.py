@@ -6,6 +6,7 @@ from robots.robots import XYPhiRobot
 from robots.sensors import LandmarkSensor, LidarSensor
 from robots.grid import Grid
 from robots.bbox import BBox
+from robots.posenode import PoseNode
 
 def test_landmark_sensor():
 
@@ -48,6 +49,22 @@ def test_lidar_sensor():
     mask, points = s.sense()
     assert np.logical_not(mask).all()
 
-     
+
+def test_landmark_sensor_regression_raytrace():
+
+    mask = np.zeros((10, 10))
+    world = Grid(mask, [0,0], [10,10])
+    r = XYPhiRobot(pose=[10, 10, 0])
+    world['robot'] = r
+
+    np.random.seed(0)
+    landmarks = np.vstack((
+        np.random.uniform(0.0, 100.0, [1, 100]),
+        np.random.uniform(0.0, 20.0, [1, 100])))        
+    s = LandmarkSensor(landmarks, err=0.0, fov=2.0 * math.pi, maxdist=200, measure='position', environment=world)
+    world['robot']['sensor'] = s
+
+    mask, points = s.sense()
+    assert mask.all()
     
 

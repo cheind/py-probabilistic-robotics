@@ -12,14 +12,25 @@ class PoseNode:
     elements. A hierarchical representation of position information is often useful 
     in robotics. Most of the objects in this libary inherit PoseNode and are therefore
     compositable in a hierarchical fashion.
+
+    Attributes
+    ----------
+    node_parent : PoseNode
+        Parent of this node. None if root.
+    node_children : dict
+        Map of name to PoseNode for each child of this node.
+    pose : 1x3 array
+        Pose vector of this node with respect to parent frame.
     """
 
     def __init__(self, pose=[0,0,0], parent=None):
         """Create a PoseNode.
 
         Params
-            pose : (optional) 1x3 pose vector of this node representing x, y, phi.
-            parent: (parent) Parent of this node.
+        pose : 1x3 array, optional
+            Pose vector of this node representing x, y, phi.
+        parent : PoseNode, optional
+            Parent of this node.
         """            
         self.node_parent = parent
         self.node_children = {}
@@ -28,19 +39,20 @@ class PoseNode:
     def __getitem__(self, name):
         """Returns a child node by name.
 
-        The name may contain multiple occurances of '.' as path separator. I.e
-            
+        The name may contain multiple occurances of '.' as path separator. I.e            
             node['a.b.c']
-        
         has the same meaning as writing
-
             node['a']['b']['c']
 
         Params
-            name : name of node
+        ------
+        name : str
+            Name of node
 
         Returns
-            node : PoseNode associated with name
+        -------
+        PoseNode
+            PoseNode associated with given name
         """
         path = name.split('.')
         n = self
@@ -52,8 +64,11 @@ class PoseNode:
         """Adds a new node as children of this node.
 
         Params
-            name : name of new node
-            node : PoseNode to be added
+        ------
+        name : str
+            Name of new node
+        node : PoseNode 
+            PoseNode to be added
         """
         self.node_children[name] = obj
         obj.node_parent = self

@@ -4,7 +4,9 @@ from matplotlib.patches import Circle
 from matplotlib.lines import Line2D
 from matplotlib.patches import Wedge
 from matplotlib.collections import LineCollection, EllipseCollection
+from matplotlib.axes._axes import _AxesBase
 import matplotlib.transforms as mplt
+
 
 from robots import transforms
 from robots.posenode import PoseNode
@@ -17,7 +19,7 @@ class BaseDrawer:
     def keyfor(self, *objs):
         hashable = []
         for obj in objs:
-            if isinstance(obj, (PoseNode, np.ndarray)):
+            if isinstance(obj, (PoseNode, np.ndarray, _AxesBase)):
                 hashable.append(id(obj))
             else:
                 k = self.nextkey
@@ -28,7 +30,7 @@ class BaseDrawer:
 class Drawer(BaseDrawer):
 
     def draw_robot(self, robot, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(robot))
+        key = (ax, kwargs.pop('key', self.keyfor(robot)))
 
         radius = kwargs.pop('radius', 0.5)
         fc = kwargs.pop('fc', 'None')
@@ -37,17 +39,17 @@ class Drawer(BaseDrawer):
         with_circle = kwargs.pop('with_circle', True)
         zorder = kwargs.pop('zorder', 2)
         
-        if (ax, key) not in self.items:
+        if key not in self.items:
             c = Circle((0,0), radius=radius, fc=fc, ec=ec, zorder=zorder)
             lx = Line2D((0,0),(0,0), color='r', zorder=zorder)
             ly = Line2D((0,0),(0,0), color='g', zorder=zorder)
             ax.add_artist(c)
             ax.add_artist(lx)
             ax.add_artist(ly)
-            self.items[(ax, key)] = dict(c=c, lx=lx, ly=ly)
+            self.items[key] = dict(c=c, lx=lx, ly=ly)
 
         updated = []
-        d = self.items[(ax, key)]
+        d = self.items[key]
 
         tr = mplt.Affine2D(matrix=robot.transform_to_world) + ax.transData
 
@@ -74,18 +76,18 @@ class Drawer(BaseDrawer):
         return updated
 
     def draw_sensor(self, sensor, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(sensor))
+        key = (ax, kwargs.pop('key', self.keyfor(sensor)))
 
         fc = kwargs.pop('fc', 'r')
         ec = kwargs.pop('ec', 'r')
         zorder = kwargs.pop('zorder', 3)
 
-        if (ax, key) not in self.items:
+        if key not in self.items:
             w = Wedge((0,0), min(sensor.maxdist, 100), -math.degrees(sensor.fov/2), math.degrees(sensor.fov/2), fc=fc, ec=ec, alpha=0.5, zorder=zorder)
             ax.add_artist(w)
-            self.items[(ax, key)] = dict(w=w)
+            self.items[key] = dict(w=w)
 
-        d = self.items[(ax, key)]
+        d = self.items[key]
 
         tr = mplt.Affine2D(matrix=sensor.transform_to_world) + ax.transData
         d['w'].set_transform(tr)
@@ -94,14 +96,14 @@ class Drawer(BaseDrawer):
 
 
     def draw_grid(self, grid, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(grid))
+        key = (ax, kwargs.pop('key', self.keyfor(grid)))
 
         cmap = kwargs.pop('cmap', 'gray_r')
         interp = kwargs.pop('interpolation', 'none')
         zorder = kwargs.pop('zorder', 1)
         alpha = kwargs.pop('alpha', 1)
 
-        if (ax, key) not in self.items:
+        if key not in self.items:
             bbox = grid.bbox
             im = ax.imshow(
                 grid.values, 
@@ -111,9 +113,9 @@ class Drawer(BaseDrawer):
                 cmap=cmap, 
                 extent=[bbox.mincorner[0], bbox.maxcorner[0], bbox.mincorner[1], bbox.maxcorner[1]], 
                 zorder=zorder)                
-            self.items[(ax, key)] = dict(im=im)
+            self.items[key] = dict(im=im)
 
-        d = self.items[(ax, key)]
+        d = self.items[key]
 
         # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
         tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData 
@@ -123,7 +125,7 @@ class Drawer(BaseDrawer):
         return d['im'],
 
     def draw_points(self, points, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(points))
+        key = (ax, kwargs.pop('key', self.keyfor(points)))
         
         size = kwargs.pop('size', 80)
         fc = kwargs.pop('fc', 'b')
@@ -136,13 +138,13 @@ class Drawer(BaseDrawer):
         if t is not None:
             points = transforms.transform(t, points, hvalue=1.)
 
-        if (ax, key) not in self.items:
+        if key not in self.items:
             scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
-            self.items[(ax, key)] = dict(scatter=scat)
+            self.items[key] = dict(scatter=scat)
 
         updated=[]
         
-        d = self.items[(ax, key)]
+        d = self.items[key]
         scat = d['scatter']
         scat.set_offsets(points.T)
         scat.set_zorder(zorder)
@@ -165,7 +167,7 @@ class Drawer(BaseDrawer):
     
 
     def draw_confidence_ellipse(self, u, cov, ax, **kwargs):
-        key = kwargs.pop('key', self.keyfor(u, cov))
+        key = (ax, kwargs.pop('key', self.keyfor(u, cov)))
         fc = kwargs.pop('fc', 'none')
         ec = kwargs.pop('ec', 'k')        
         zorder = kwargs.pop('zorder', 1)
@@ -174,8 +176,8 @@ class Drawer(BaseDrawer):
         # http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
         # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 
-        if (ax, key) in self.items:
-            self.items[(ax, key)].remove()
+        if key in self.items:
+            self.items[key].remove()
 
         u = np.asarray(u)
         cov = np.asarray(cov).reshape(-1, 2, 2)
@@ -195,7 +197,7 @@ class Drawer(BaseDrawer):
         )
         ax.add_collection(e)
 
-        self.items[(ax, key)] = e
+        self.items[key] = e
 
         return e,
 

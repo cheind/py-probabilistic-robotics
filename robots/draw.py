@@ -172,7 +172,8 @@ class Drawer(BaseDrawer):
         ec = kwargs.pop('ec', 'k')        
         zorder = kwargs.pop('zorder', 1)
 
-        chisquare_val = kwargs.pop('scale', 2.4477) # 95% confidence area
+        chisquare_val = kwargs.pop('scale', 5.991) # 95% confidence area based on chi2(2dof, 0.05)
+        
         # http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
         # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 
@@ -181,7 +182,7 @@ class Drawer(BaseDrawer):
 
         u = np.asarray(u)
         cov = np.asarray(cov).reshape(-1, 2, 2)
-        widths, heights, angles = self._compute_ellipse_parameters(u, cov, chisquare_val)        
+        widths, heights, angles = self._compute_ellipse_parameters(cov, chisquare_val)        
         
         e = EllipseCollection(
             widths, 
@@ -202,7 +203,7 @@ class Drawer(BaseDrawer):
         return e,
 
 
-    def _compute_ellipse_parameters(self, u, cov, chi_square):
+    def _compute_ellipse_parameters(self, cov, chi_square=5.991):
         cov = np.asarray(cov).reshape(-1, 2, 2)
         n = cov.shape[0]
         w, v = np.linalg.eig(cov)

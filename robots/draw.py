@@ -164,7 +164,34 @@ class Drawer(BaseDrawer):
                 updated.extend(ann)
         return updated
 
-    
+    def draw_line(self, segments, ax, **kwargs):
+        key = (ax, kwargs.pop('key', self.keyfor(segments)))
+        ec = kwargs.pop('ec', 'k')        
+        t = kwargs.pop('transform', None)
+        zorder = kwargs.pop('zorder', 1)
+
+        if key not in self.items:
+            l = LineCollection(segments)
+            ax.add_collection(l)
+            self.items[key] = dict(lines=l)
+
+        d = self.items[key]
+        l = d['lines']
+
+        l.set_segments(segments)
+        l.set_edgecolors(ec)
+        if t is not None:
+            l.set_transform(mplt.Affine2D(matrix=t) + ax.transData)
+
+        # u += drawer.draw_line(
+        #     np.array([
+        #         [0,10],
+        #         [0,10]
+        #     ]).T.reshape(1,2,2),
+        #     ax
+        # )
+        
+        return l,
 
     def draw_confidence_ellipse(self, u, cov, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(u, cov)))
@@ -201,6 +228,8 @@ class Drawer(BaseDrawer):
         self.items[key] = e
 
         return e,
+
+        
 
 
     def _compute_ellipse_parameters(self, cov, chi_square=5.991):

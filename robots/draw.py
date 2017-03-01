@@ -175,26 +175,11 @@ class Drawer(BaseDrawer):
         # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 
         if (ax, key) in self.items:
-            self.items[(ax, key)].remove()        
-        
+            self.items[(ax, key)].remove()
+
         u = np.asarray(u)
         cov = np.asarray(cov).reshape(-1, 2, 2)
-
-        n = cov.shape[0]
-        w, v = np.linalg.eig(cov)
-        w = np.abs(w)
-        major = np.argmax(w, axis=1)
-        minor = (major + 1) % 2
-    
-        angles = np.zeros(n)
-        widths = np.zeros(n)
-        heights = np.zeros(n)
-        for i in range(n):
-            angles[i] = math.atan2(v[i, 1, major[i]], v[i, 0, major[i]])
-            widths[i] = 2 * math.sqrt(w[i, major[i]] * chisquare_val)
-            heights[i] = 2 * math.sqrt(w[i, minor[i]] * chisquare_val)
-
-        angles[angles < 0.] += 2 * np.pi # -pi..pi -> 0..2pi
+        widths, heights, angles = self._compute_ellipse_parameters(u, cov, chisquare_val)        
         
         e = EllipseCollection(
             widths, 
@@ -213,3 +198,23 @@ class Drawer(BaseDrawer):
         self.items[(ax, key)] = e
 
         return e,
+
+
+    def _compute_ellipse_parameters(self, u, cov, chi_square):
+        cov = np.asarray(cov).reshape(-1, 2, 2)
+        n = cov.shape[0]
+        w, v = np.linalg.eig(cov)
+        w = np.abs(w)
+        major = np.argmax(w, axis=1)
+        minor = (major + 1) % 2
+    
+        angles = np.zeros(n)
+        widths = np.zeros(n)
+        heights = np.zeros(n)
+        for i in range(n):
+            angles[i] = math.atan2(v[i, 1, major[i]], v[i, 0, major[i]])
+            widths[i] = 2 * math.sqrt(w[i, major[i]] * chi_square)
+            heights[i] = 2 * math.sqrt(w[i, minor[i]] * chi_square)
+
+        angles[angles < 0.] += 2 * np.pi # -pi..pi -> 0..2pi
+        return widths, heights, angles

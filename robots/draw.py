@@ -115,7 +115,8 @@ class Drawer(BaseDrawer):
 
         d = self.items[(ax, key)]
 
-        tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData
+        # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
+        tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData 
         d['im'].set_data(grid.values)
         d['im'].set_transform(tr)
 

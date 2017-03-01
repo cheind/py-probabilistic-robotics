@@ -166,10 +166,13 @@ class Drawer(BaseDrawer):
 
     def draw_confidence_ellipse(self, u, cov, ax, **kwargs):
         key = kwargs.pop('key', self.keyfor(u, cov))
-
-        fc = kwargs.pop('fc', 'b')
-        ec = kwargs.pop('ec', 'none')
+        fc = kwargs.pop('fc', 'none')
+        ec = kwargs.pop('ec', 'k')        
         zorder = kwargs.pop('zorder', 1)
+
+        chisquare_val = kwargs.pop('chisquare', 2.4477) # 95%
+        # http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
+        # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 
         if (ax, key) in self.items:
             self.items[(ax, key)].remove()        
@@ -182,15 +185,14 @@ class Drawer(BaseDrawer):
         w = np.abs(w)
         major = np.argmax(w, axis=1)
         minor = (major + 1) % 2
-
-        chisquare_val = 2.4477 # 95%        
+    
         angles = np.zeros(n)
         widths = np.zeros(n)
         heights = np.zeros(n)
         for i in range(n):
             angles[i] = math.atan2(v[i, 1, major[i]], v[i, 0, major[i]])
-            widths[i] = 2 * chisquare_val * math.sqrt(w[i, major[i]]) * 10
-            heights[i] = 2 * chisquare_val * math.sqrt(w[i, minor[i]]) * 10
+            widths[i] = 2 * math.sqrt(w[i, major[i]] * chisquare_val)
+            heights[i] = 2 * math.sqrt(w[i, minor[i]] * chisquare_val)
 
         angles[angles < 0.] += 2 * np.pi # -pi..pi -> 0..2pi
         
@@ -203,9 +205,10 @@ class Drawer(BaseDrawer):
             transOffset=ax.transData,
             facecolors=fc,
             edgecolors=ec,
-            zorder=zorder
+            zorder=zorder,
+            alpha=0.5
         )
-        ax.add_artist(e)
+        ax.add_collection(e)
 
         self.items[(ax, key)] = e
 

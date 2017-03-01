@@ -170,7 +170,7 @@ class Drawer(BaseDrawer):
         ec = kwargs.pop('ec', 'k')        
         zorder = kwargs.pop('zorder', 1)
 
-        chisquare_val = kwargs.pop('chisquare', 2.4477) # 95%
+        chisquare_val = kwargs.pop('scale', 2.4477) # 95% confidence area
         # http://www.visiondummy.com/2014/04/draw-error-ellipse-representing-covariance-matrix/
         # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 

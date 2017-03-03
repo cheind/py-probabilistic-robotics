@@ -1,9 +1,34 @@
 import numpy as np
 import math
+import pytest
 from pytest import approx
 
+import matplotlib.pyplot as plt
 from robots.draw import Drawer
-from scipy.stats import chi2
+
+# These tests use https://github.com/matplotlib/pytest-mpl
+# Generate baseline images from project root with
+#   pytest --mpl-generate-path=robots/tests/baseline_images
+# Run tests with mpl comparison
+#   pytest --mpl
+
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_draw_points():
+
+    fig, ax = plt.subplots()
+    ax.set_xlim([-5, 5])
+    ax.set_ylim([-5, 5])
+    ax.set_aspect('equal')
+
+    d = Drawer()
+    
+    points = np.array([
+        [0, 2, 4], # x
+        [0, 0, 2]  # y
+    ], dtype=float)
+
+    d.draw_points(points, ax, marker=(5,1), fc=('r', 'b', 'g'))
+    return fig
 
 
 def test_confidence_ellipse_params():

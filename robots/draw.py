@@ -1,5 +1,8 @@
 import math
 import numpy as np
+
+
+
 from matplotlib.patches import Circle
 from matplotlib.lines import Line2D
 from matplotlib.patches import Wedge
@@ -7,6 +10,7 @@ from matplotlib.collections import LineCollection, EllipseCollection
 from matplotlib.axes._axes import _AxesBase
 import matplotlib.transforms as mplt
 
+from collections import namedtuple
 
 from robots import transforms
 from robots.posenode import PoseNode
@@ -14,7 +18,6 @@ from robots.posenode import PoseNode
 class BaseDrawer:
     def __init__(self):
         self.items = {}
-        self.nextkey = 0
 
     def keyfor(self, *objs):
         hashable = []
@@ -22,12 +25,22 @@ class BaseDrawer:
             if isinstance(obj, (PoseNode, np.ndarray, _AxesBase)):
                 hashable.append(id(obj))
             else:
-                k = self.nextkey
-                hashable.append(k)
-                self.nextkey += 1
+                import uuid    
+                hashable.append(uuid.uuid4())  
         return tuple(hashable)
 
+    def get_artists(self, key, creator):
+        if not key in self.items:
+            artists = creator()
+            self.items[key] = artists
+        else:
+            artists = self.items[key]
+        
+        return artists
+
 class Drawer(BaseDrawer):
+    
+    RobotArtists = namedtuple('RobotArtists', 'circle, linex, liney')
 
     def draw_robot(self, robot, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(robot)))
@@ -35,45 +48,38 @@ class Drawer(BaseDrawer):
         radius = kwargs.pop('radius', 0.5)
         fc = kwargs.pop('fc', 'None')
         ec = kwargs.pop('ec', 'k')
-        with_axis = kwargs.pop('with_axis', True)
-        with_circle = kwargs.pop('with_circle', True)
         zorder = kwargs.pop('zorder', 2)
+
+        def create_artists():
+            artists = Drawer.RobotArtists(
+                circle=Circle((0,0), radius=radius, fc=fc, ec=ec, zorder=zorder),
+                linex=Line2D([], [], color='r', zorder=zorder),
+                liney=Line2D([], [], color='g', zorder=zorder)
+            )
+            for a in artists:
+                ax.add_artist(a)
+            return artists
         
-        if key not in self.items:
-            c = Circle((0,0), radius=radius, fc=fc, ec=ec, zorder=zorder)
-            lx = Line2D((0,0),(0,0), color='r', zorder=zorder)
-            ly = Line2D((0,0),(0,0), color='g', zorder=zorder)
-            ax.add_artist(c)
-            ax.add_artist(lx)
-            ax.add_artist(ly)
-            self.items[key] = dict(c=c, lx=lx, ly=ly)
-
-        updated = []
-        d = self.items[key]
-
+        artists = self.get_artists(key, create_artists)
         tr = mplt.Affine2D(matrix=robot.transform_to_world) + ax.transData
+         
+        artists.circle.set_radius(radius)
+        artists.circle.set_zorder(zorder)
+        artists.circle.set_transform(tr)
 
-        if with_circle:            
-            d['c'].set_radius(radius)
-            d['c'].set_zorder(zorder)
-            d['c'].set_transform(tr)
-            updated.append(d['c'])
+        artists.linex.set_xdata([0., radius])
+        artists.linex.set_ydata([0., 0])
+        artists.linex.set_zorder(zorder)
+        artists.linex.set_transform(tr)
 
-        if with_axis:
-            d['lx'].set_xdata([0., radius])
-            d['lx'].set_ydata([0., 0])
-            d['lx'].set_zorder(zorder)
-            d['lx'].set_transform(tr)
+        artists.liney.set_xdata([0., 0])
+        artists.liney.set_ydata([0., radius])
+        artists.liney.set_zorder(zorder)
+        artists.liney.set_transform(tr)
 
-            d['ly'].set_xdata([0., 0])
-            d['ly'].set_ydata([0., radius])
-            d['ly'].set_zorder(zorder)
-            d['ly'].set_transform(tr)
+        return artists
 
-            updated.append(d['lx'])
-            updated.append(d['ly'])
-
-        return updated
+    SensorArtists = namedtuple('SensorArtists', 'wedge')
 
     def draw_sensor(self, sensor, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(sensor)))
@@ -82,18 +88,26 @@ class Drawer(BaseDrawer):
         ec = kwargs.pop('ec', 'r')
         zorder = kwargs.pop('zorder', 3)
 
-        if key not in self.items:
-            w = Wedge((0,0), min(sensor.maxdist, 100), -math.degrees(sensor.fov/2), math.degrees(sensor.fov/2), fc=fc, ec=ec, alpha=0.5, zorder=zorder)
-            ax.add_artist(w)
-            self.items[key] = dict(w=w)
+        def create_artists():
+            artists = Drawer.SensorArtists(
+                wedge=Wedge(
+                    (0,0), 
+                    min(sensor.maxdist, 1000), 
+                    -math.degrees(sensor.fov/2), 
+                    math.degrees(sensor.fov/2), 
+                    fc=fc, ec=ec, alpha=0.5, zorder=zorder)
+            )
+            for a in artists:
+                ax.add_artist(a)
+            return artists
 
-        d = self.items[key]
-
+        artists = self.get_artists(key, create_artists)
         tr = mplt.Affine2D(matrix=sensor.transform_to_world) + ax.transData
-        d['w'].set_transform(tr)
+        artists.wedge.set_transform(tr)
         
-        return d['w'],
+        return artists
 
+    GridArtists = namedtuple('GridArtists', 'image')
 
     def draw_grid(self, grid, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(grid)))
@@ -103,26 +117,29 @@ class Drawer(BaseDrawer):
         zorder = kwargs.pop('zorder', 1)
         alpha = kwargs.pop('alpha', 1)
 
-        if key not in self.items:
-            bbox = grid.bbox
-            im = ax.imshow(
-                grid.values, 
-                origin='lower', 
-                interpolation=interp, 
-                alpha=alpha, 
-                cmap=cmap, 
-                extent=[bbox.mincorner[0], bbox.maxcorner[0], bbox.mincorner[1], bbox.maxcorner[1]], 
-                zorder=zorder)                
-            self.items[key] = dict(im=im)
+        def create_artists():
+            artists = Drawer.GridArtists(
+                image=ax.imshow(
+                    grid.values, 
+                    origin='lower', 
+                    interpolation=interp, 
+                    alpha=alpha, 
+                    cmap=cmap, 
+                    extent=[grid.bbox.mincorner[0], grid.bbox.maxcorner[0], grid.bbox.mincorner[1], grid.bbox.maxcorner[1]], 
+                    zorder=zorder)
+            )
+            return artists
 
-        d = self.items[key]
+        artists = self.get_artists(key, create_artists)
 
         # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
         tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData 
-        d['im'].set_data(grid.values)
-        d['im'].set_transform(tr)
+        artists.image.set_data(grid.values)
+        artists.image.set_transform(tr)
 
-        return d['im'],
+        return artists
+
+    PointArtists = namedtuple('PointArtists', 'scatter')
 
     def draw_points(self, points, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(points)))
@@ -130,58 +147,42 @@ class Drawer(BaseDrawer):
         size = kwargs.pop('size', 80)
         fc = kwargs.pop('fc', 'b')
         ec = kwargs.pop('ec', 'none')
-        with_labels = kwargs.pop('with_labels', False)
         marker = kwargs.pop('marker', (5, 1))
         zorder = kwargs.pop('zorder', 4)
         t = kwargs.pop('transform', None)
 
+        def create_artists():
+            artists = Drawer.PointArtists(
+                scatter=ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)
+            )
+            return artists
+        
         if t is not None:
             points = transforms.transform(t, points, hvalue=1.)
 
-        if key not in self.items:
-            scat = ax.scatter([], [], s=size, edgecolors=ec, facecolors=fc, zorder=zorder, marker=marker)                   
-            self.items[key] = dict(scatter=scat)
+        artists = self.get_artists(key, create_artists)
+        artists.scatter.set_offsets(points.T)
+        artists.scatter.set_zorder(zorder)
+        artists.scatter.set_facecolors(fc)
+        artists.scatter.set_edgecolors(ec)
+        return artists
 
-        updated=[]
-        
-        d = self.items[key]
-        scat = d['scatter']
-        scat.set_offsets(points.T)
-        scat.set_zorder(zorder)
-        scat.set_facecolors(fc)
-        scat.set_edgecolors(ec)
 
-        updated.append(scat)
-
-        if with_labels:
-            if not 'ann' in d:
-                d['ann'] = [ax.annotate(i, xy=(landmarks[0,i], landmarks[1,i])) for i in range(landmarks.shape[1])]                    
-                updated.extend(d['ann'])
-            else:
-                ann = d['ann']
-                for i,a in enumerate(ann):
-                    a.set_position((landmarks[0,i], landmarks[1,i]))
-                updated.extend(ann)
-        return updated
-
-    def draw_line(self, segments, ax, **kwargs):
+    LineArtists = namedtuple('LineArtists', 'lines')
+    def draw_lines(self, segments, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(segments)))
         ec = kwargs.pop('ec', 'k')        
         t = kwargs.pop('transform', None)
         zorder = kwargs.pop('zorder', 1)
 
-        if key not in self.items:
-            l = LineCollection(segments)
-            ax.add_collection(l)
-            self.items[key] = dict(lines=l)
-
-        d = self.items[key]
-        l = d['lines']
-
-        l.set_segments(segments)
-        l.set_edgecolors(ec)
-        if t is not None:
-            l.set_transform(mplt.Affine2D(matrix=t) + ax.transData)
+        def create_artists():
+            artists = Drawer.LineArtists(lines=LineCollection([]))
+            ax.add_collection(artists)
+        
+        artists = self.get_artists(key, create_artists)
+        artists.lines.set_segments(segments)
+        artists.lines.set_edgecolors(ec)
+        return artists
 
         # u += drawer.draw_line(
         #     np.array([
@@ -190,10 +191,10 @@ class Drawer(BaseDrawer):
         #     ]).T.reshape(1,2,2),
         #     ax
         # )
-        
-        return l,
 
-    def draw_confidence_ellipse(self, u, cov, ax, **kwargs):
+    ConfidenceEllipseArtists = namedtuple('ConfidenceEllipseArtists', 'ellipses')
+
+    def draw_confidence_ellipses(self, u, cov, ax, **kwargs):
         key = (ax, kwargs.pop('key', self.keyfor(u, cov)))
         fc = kwargs.pop('fc', 'none')
         ec = kwargs.pop('ec', 'k')        
@@ -205,32 +206,33 @@ class Drawer(BaseDrawer):
         # https://people.richland.edu/james/lecture/m170/tbl-chi.html
 
         if key in self.items:
-            self.items[key].remove()
+            artists = self.get_artists(key, None)
+            for a in artists:
+                a.remove()
 
         u = np.asarray(u)
         cov = np.asarray(cov).reshape(-1, 2, 2)
         widths, heights, angles = self._compute_ellipse_parameters(cov, chisquare_val)        
-        
-        e = EllipseCollection(
-            widths, 
-            heights, 
-            np.degrees(angles),
-            units='y', 
-            offsets=u.reshape(2,-1), 
-            transOffset=ax.transData,
-            facecolors=fc,
-            edgecolors=ec,
-            zorder=zorder,
-            alpha=0.5
+                
+        artists = Drawer.ConfidenceEllipseArtists(
+            ellipses=EllipseCollection(
+                widths, 
+                heights, 
+                np.degrees(angles),
+                units='y', 
+                offsets=u.reshape(2,-1), 
+                transOffset=ax.transData,
+                facecolors=fc,
+                edgecolors=ec,
+                zorder=zorder,
+                alpha=0.5
+            )
         )
-        ax.add_collection(e)
-
-        self.items[key] = e
-
-        return e,
-
+        for a in artists:
+            ax.add_artist(a)
         
-
+        self.items[key] = artists
+        return artists
 
     def _compute_ellipse_parameters(self, cov, chi_square=5.991):
         cov = np.asarray(cov).reshape(-1, 2, 2)

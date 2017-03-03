@@ -39,22 +39,28 @@ if __name__ == '__main__':
     ax.set_ylim([-5, 15])
     ax.set_aspect('equal')
     ax.grid()
-    
-    drawer.draw_grid(world, ax, alpha=0.5)
+
+    def init():
+        
+
     def update(i):
         robot.move([0.02, 0.1])
 
         # First sensor
         mask, bearings = sensor.sense()
         colors = ['g' if m else 'b' for m in mask]
-        u = drawer.draw_robot(robot, ax, radius=0.5)        
+
+        u = []
+        u += drawer.draw_robot(robot, ax, radius=0.5)        
         u += drawer.draw_sensor(sensor, ax)        
         u += drawer.draw_points(landmarks, ax, fc=colors)
         
         # Second sensor
         mask, points = lidar.sense()        
         points = points[:, np.where(mask)[0]]
+        
         u += drawer.draw_points(points, ax, size=5, marker='o', transform=lidar.transform_to_world, key='lidar') # need to use drawing key as points is always a new object
+        
         u += drawer.draw_sensor(lidar, ax, fc='green', ec='green')     
 
         ret, cell = world.intersect_with_circle(robot.pose[:2], 0.5)
@@ -63,7 +69,7 @@ if __name__ == '__main__':
 
         return u
 
-    ani = animation.FuncAnimation(fig, update, 25, interval=30, blit=True)
+    ani = animation.FuncAnimation(fig, update, frames=10000, interval=30, init_func=init, blit=True)
     plt.show()
 
 

@@ -30,6 +30,34 @@ def test_draw_points():
     d.draw_points(points, ax, marker=(5,1), fc=('r', 'b', 'g'))
     return fig
 
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+def test_draw_lines():
+
+    fig, ax = plt.subplots()
+    ax.set_xlim([-10, 10])
+    ax.set_ylim([-10, 10])
+    ax.set_aspect('equal')
+
+    d = Drawer()
+    
+    lines = []
+    lines.append(np.array([
+        [0, 5],  # x
+        [0, 0]   # y
+    ]))
+    lines.append(np.array([
+        [4, 6, 6],  # x
+        [4, 4, 6]   # y
+    ]))
+    d.draw_lines(lines, ax, ec='b')
+
+    otherlines = np.array(
+        [[[-2,-4],[-2,-4]]]
+    )
+    d.draw_lines(otherlines, ax, ec='r')
+
+    return fig
+
 
 def test_confidence_ellipse_params():
 

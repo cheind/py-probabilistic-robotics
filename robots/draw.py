@@ -177,20 +177,17 @@ class Drawer(BaseDrawer):
 
         def create_artists():
             artists = Drawer.LineArtists(lines=LineCollection([]))
-            ax.add_collection(artists)
+            ax.add_collection(artists.lines)
+            return artists
+
+        transposed_lines = []
+        for l in segments:
+            transposed_lines.append(l.T)
         
         artists = self.get_artists(key, create_artists)
-        artists.lines.set_segments(segments)
+        artists.lines.set_segments(transposed_lines)
         artists.lines.set_edgecolors(ec)
         return artists
-
-        # u += drawer.draw_line(
-        #     np.array([
-        #         [0,10],
-        #         [0,10]
-        #     ]).T.reshape(1,2,2),
-        #     ax
-        # )
 
     ConfidenceEllipseArtists = namedtuple('ConfidenceEllipseArtists', 'ellipses')
 

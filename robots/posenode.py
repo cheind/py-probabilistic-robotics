@@ -15,6 +15,8 @@ class PoseNode:
 
     Attributes
     ----------
+    name : string
+        Name of this node.
     node_parent : PoseNode
         Parent of this node. None if root.
     node_children : dict
@@ -33,18 +35,54 @@ class PoseNode:
         Relative 3x3 transformation between this the world frame and this node.
     """
 
-    def __init__(self, pose=[0,0,0], parent=None):
+    def __init__(self, pose=[0,0,0], name=None, parent=None):
         """Create a PoseNode.
 
         Params
+        ------
+        name : string, optional
+            Name of node. If not provided a unique name is generated
         pose : 1x3 array, optional
             Pose vector of this node representing x, y, phi.
         parent : PoseNode, optional
-            Parent of this node.
+            Parent of this node. If provided registers this node as child at parent.
         """            
-        self.node_parent = parent
+        
+        self.name = name
+        if self.name is None:
+            import uuid            
+            self.name = str(uuid.uuid4())
+
+        self.node_parent = None        
         self.node_children = {}
         self.pose = np.asarray(pose, dtype=float)
+
+        if parent is not None:
+            parent.add_node(self)
+
+    def add_node(self, node):
+        """Add node as child of self.
+        
+        Params
+        ------
+        node : PoseNode
+            Node to add
+        """
+        assert not node.name in self.node_children
+        self.node_children[node.name] = node
+        if node.node_parent is not None:
+            node.node_parent.remove_node(node)        
+        node.node_parent = self
+    
+    def remove_node(self, node):
+        """Remove child node.
+
+        Params
+        ------
+        node : PoseNode
+            Node to be removed
+        """
+        del self.node_children[node.name]
 
     def __getitem__(self, name):
         """Returns a child node by name.
@@ -69,19 +107,6 @@ class PoseNode:
         for item in path:
             n = n.node_children[item]
         return n
-    
-    def __setitem__(self, name, obj):
-        """Adds a new node as children of this node.
-
-        Params
-        ------
-        name : str
-            Name of new node
-        node : PoseNode 
-            PoseNode to be added
-        """
-        self.node_children[name] = obj
-        obj.node_parent = self
 
     @property
     def root_node(self):

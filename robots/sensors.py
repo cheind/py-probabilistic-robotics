@@ -46,6 +46,12 @@ class LandmarkSensor(PoseNode):
 
         Kwargs
         ------
+        pose : 1x3 array, optional
+            Pose vector. Defaults to identity
+        parent : PoseNode, optional
+            Parent node in pose hierarchy
+        name : string, optional
+            Name of node
         err : float, optional
             The error associated with sensing. The error model assumes a zero centered normal 
             distribution having a standard deviation proportional to the distance of landmarks.
@@ -58,9 +64,7 @@ class LandmarkSensor(PoseNode):
             Type of measurement. One of ['position', 'bearing', 'distance']
         environment : Grid, optional
             Grid used to determine occlusion of landmarks with respect to sensor.
-        pose : 1x3 array, optional
-            Pose vector. Defaults to identity
-        """
+        """        
         self.sense_err = kwargs.pop('err', 0)
         self.fov = kwargs.pop('fov', 2 * math.pi)
         self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)
@@ -68,8 +72,7 @@ class LandmarkSensor(PoseNode):
         self.environment = kwargs.pop('environment', None)
         self.landmarks = landmarks
 
-        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
-        super(LandmarkSensor, self).__init__(pose=pose)
+        super(LandmarkSensor, self).__init__(**kwargs)
 
     def sense(self, **kwargs):
         """Observe landmarks.
@@ -180,6 +183,12 @@ class LidarSensor(PoseNode):
 
         Kwargs
         ------
+        pose : 1x3 array, optional
+            Pose vector. Defaults to identity
+        parent : PoseNode, optional
+            Parent node in pose hierarchy
+        name : string, optional
+            Name of node
         err : float, optional
             The error associated with sensing. The error model assumes a zero centered normal 
             distribution having a standard deviation proportional to the distance of intersections.
@@ -190,19 +199,16 @@ class LidarSensor(PoseNode):
             Maximum range. Defaults to float-max
         angular_resolution : float, optional
             Angular resolution between two consecutive rays in radians. Defaults to 0.1
-        pose : 1x3 array, optional
-            Pose vector. If omitted identity is assumed.
-        """
-        self.environment = environment
+        """        
 
+        self.environment = environment
         self.sense_err = kwargs.pop('err', 0)
         self.fov = kwargs.pop('fov', 2 * math.pi)
         self.maxdist = kwargs.pop('maxdist', np.finfo(np.float32).max)    
         angular_res = kwargs.pop('angular_resolution', 0.1)  
         self.angles = np.arange(-self.fov/2, self.fov/2, angular_res)
-        
-        pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
-        super(LidarSensor, self).__init__(pose=pose)
+
+        super(LidarSensor, self).__init__(**kwargs)
 
     def sense(self, **kwargs):
         """Perform range measurements.

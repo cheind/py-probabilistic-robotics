@@ -16,8 +16,7 @@ def test_landmark_sensor():
         [0, 3, -2],
         [0, 6, 5]
     ])
-    s = LandmarkSensor(landmarks)
-    r['sensor'] = s
+    s = LandmarkSensor(landmarks, parent=r)
 
     mask, obs = s.sense(measure='position')
     np.testing.assert_allclose(obs, np.array([[-5, -2, -7], [-5, 1, 0]]))
@@ -38,8 +37,7 @@ def test_lidar_sensor():
 
     r = XYPhiRobot(pose=[5, 5, 0])
 
-    s = LidarSensor(grid, fov=math.pi/4)    
-    r['sensor'] = s
+    s = LidarSensor(grid, fov=math.pi/4, parent=r)
 
     mask, points = s.sense()
     assert mask.all()
@@ -54,15 +52,13 @@ def test_landmark_sensor_regression_raytrace():
 
     mask = np.zeros((10, 10))
     world = Grid(mask, [0,0], [10,10])
-    r = XYPhiRobot(pose=[10, 10, 0])
-    world['robot'] = r
+    r = XYPhiRobot(pose=[10, 10, 0], parent=world)
 
     np.random.seed(0)
     landmarks = np.vstack((
         np.random.uniform(0.0, 100.0, [1, 100]),
         np.random.uniform(0.0, 20.0, [1, 100])))        
-    s = LandmarkSensor(landmarks, err=0.0, fov=2.0 * math.pi, maxdist=200, measure='position', environment=world)
-    world['robot']['sensor'] = s
+    s = LandmarkSensor(landmarks, err=0.0, fov=2.0 * math.pi, maxdist=200, measure='position', environment=world, parent=r)
 
     mask, points = s.sense()
     assert mask.all()

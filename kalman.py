@@ -90,16 +90,14 @@ if __name__ == '__main__':
         np.random.uniform(-20.0, 120.0, [1, 50])))
 
     # Virtual x,y,phi robot
-    robot = XYRobot(pose=[0,50,0], err=0.1)
+    robot = XYRobot(pose=[0,50,0], err=0.1, parent=world)
     #robot = XYPhiRobot(pose=[0,0,0], err=[0.0, 0.0])
-    world['robot'] = robot  
 
     # robot starts exactly at landmark
     landmarks[:, 0] = robot.transform_to_world[:2, 2]
 
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position', environment=world)
-    world['robot']['sensor'] = sensor
+    sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position', environment=world, parent=robot)
 
     drawer = Drawer()
     fig, ax = plt.subplots()

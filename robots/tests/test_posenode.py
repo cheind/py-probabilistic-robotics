@@ -14,24 +14,25 @@ def test_world():
 
 def test_singlenode():
     w = PoseNode()
-    w['c0'] = PoseNode([10,10,0])
-    np.testing.assert_allclose(w['c0'].transform_to_world, [[1, 0, 10],[0, 1, 10], [0,0,1]])
-    np.testing.assert_allclose(w['c0'].transform_from_world, [[1, 0, -10],[0, 1, -10], [0,0,1]])
-    np.testing.assert_allclose(w['c0'].transform_to_parent, [[1, 0, 10],[0, 1, 10], [0,0,1]])
-    np.testing.assert_allclose(w['c0'].transform_from_parent, [[1, 0, -10],[0, 1, -10], [0,0,1]])
-    np.testing.assert_allclose(w['c0'].transform_to(w), [[1, 0, 10],[0, 1, 10], [0,0,1]])
+    c0 = PoseNode([10,10,0], parent=w)
+    np.testing.assert_allclose(c0.transform_to_world, [[1, 0, 10],[0, 1, 10], [0,0,1]])
+    np.testing.assert_allclose(c0.transform_from_world, [[1, 0, -10],[0, 1, -10], [0,0,1]])
+    np.testing.assert_allclose(c0.transform_to_parent, [[1, 0, 10],[0, 1, 10], [0,0,1]])
+    np.testing.assert_allclose(c0.transform_from_parent, [[1, 0, -10],[0, 1, -10], [0,0,1]])
+    np.testing.assert_allclose(c0.transform_to(w), [[1, 0, 10],[0, 1, 10], [0,0,1]])
 
 def test_siblingnodes():
     w = PoseNode()
-    w['c0'] = PoseNode([10,10,0])
-    w['c1'] = PoseNode([-10,-10,math.pi/2])
+    c0 = PoseNode([10,10,0], parent=w)
+    c1 = PoseNode([-10,-10,math.pi/2], parent=w)
 
-    np.testing.assert_allclose(w['c0'].transform_to(w['c1']), [[0, 1, 20],[-1, 0, -20], [0,0,1]], atol=1e-4)
-    np.testing.assert_allclose(w['c0'].transform_from(w['c1']), [[0, -1, -20],[1, 0, -20], [0,0,1]], atol=1e-4)
+    np.testing.assert_allclose(c0.transform_to(c1), [[0, 1, 20],[-1, 0, -20], [0,0,1]], atol=1e-4)
+    np.testing.assert_allclose(c0.transform_from(c1), [[0, -1, -20],[1, 0, -20], [0,0,1]], atol=1e-4)
 
 def test_nestednodes():
     w = PoseNode()
-    w['c0'] = PoseNode([10,10,0])
-    w['c0']['c1'] = PoseNode([5, 5,math.pi/2])
+    c0 = PoseNode([10,10,0], name='c0', parent=w)
+    c1 = PoseNode([5, 5,math.pi/2], name='c1', parent=c0)
 
     np.testing.assert_allclose(w['c0.c1'].transform_to_world, [[0, -1, 15],[1, 0, 15], [0,0,1]], atol=1e-4)
+    np.testing.assert_allclose(c1.transform_to_world, [[0, -1, 15],[1, 0, 15], [0,0,1]], atol=1e-4)

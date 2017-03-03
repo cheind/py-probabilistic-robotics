@@ -27,15 +27,11 @@ if __name__ == '__main__':
     ], dtype=float)
 
     # Virtual x,y,phi robot
-    robot = XYPhiRobot(pose=[-1,4,0], err=[0., 0.]) 
-    world['robot'] = robot  
-
+    robot = XYPhiRobot(pose=[-1,4,0], err=[0., 0.], parent=world) 
+    
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=world)
-    world['robot']['sensor'] = sensor
-
-    lidar = LidarSensor(world, fov=math.pi/4, maxdist=5., frame='world', pose=[0,0,math.pi])
-    world['robot']['lidar'] = lidar
+    sensor = LandmarkSensor(landmarks, err=0.01, fov=math.pi/4, maxdist=5., measure='bearing', environment=world, parent=robot)
+    lidar = LidarSensor(world, fov=math.pi/4, maxdist=5., pose=[0,0,math.pi], parent=robot)
 
     drawer = Drawer()
     fig, ax = plt.subplots()

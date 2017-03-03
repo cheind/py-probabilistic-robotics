@@ -41,6 +41,7 @@ if __name__ == '__main__':
     ax.grid()
 
     def init():
+        return drawer.draw_grid(world, ax, alpha=0.5)
         
 
     def update(i):

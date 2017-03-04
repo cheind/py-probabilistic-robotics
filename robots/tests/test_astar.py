@@ -39,7 +39,25 @@ def test_astar():
         [2, 4],
         [3, 4],
         [4, 4]
-    ])
+    ]) # note, cells are [col, row] as points are [x, y]
+
+    """
+    import matplotlib.pyplot as plt
+    from robots.draw import Drawer
+    
+    fig, ax = plt.subplots()
+    ax.set_xlim([-10, 10])
+    ax.set_ylim([-10, 10])
+    ax.set_aspect('equal')
+
+    d = Drawer()
+    d.draw_grid(grid, ax)
+    d.draw_points(np.array([[0,4],[0,4]]) + [[0.5],[0.5]], ax, fc='r')
+    lines = np.asarray(path).T + [[0.5],[0.5]]
+    d.draw_lines(lines.reshape(1,2,-1), ax)
+
+    plt.show()
+    """
 
 def test_astar_nopath():
 

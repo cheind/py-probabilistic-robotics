@@ -177,7 +177,6 @@ class Drawer(BaseDrawer):
         artists = self.get_artists(key, create_artists)
         artists.image.set_data(grid.values)
         # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
-        print(self.make_transform(grid.transform_to_world, ax))
         artists.image.set_transform(self.make_transform(grid.transform_to_world, ax))
 
         return artists

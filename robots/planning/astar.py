@@ -2,7 +2,7 @@
 import numpy as np
 from heapq import heappush, heappop
 
-def astar(start, goal, graph, heuristic):
+def astar(start, goal, graph):
     """A-star path planning."""
     
     costs = {} # Costs so far per node
@@ -12,7 +12,7 @@ def astar(start, goal, graph, heuristic):
     source[start] = None
 
     marchfront = [(0, start)] # Open list of nodes to explore
-    pathFound = False
+    pathfound = False
     while marchfront:
         p = heappop(marchfront)[1]
 
@@ -24,7 +24,7 @@ def astar(start, goal, graph, heuristic):
             cost = costs[p] + graph.cost(p, n)
             if not n in costs or cost < costs[n]:
                 costs[n] = cost
-                heappush(marchfront, (cost + heuristic(n, p), n))
+                heappush(marchfront, (cost + graph.heuristic(n, p), n))
                 source[n] = p
         
     if pathfound:
@@ -49,14 +49,13 @@ class GridGraph:
         [-1, 0]  #W 
     ], dtype=int)
 
-    def __init__(self, grid, neighborhood=FourN):
+    def __init__(self, grid, cost, heuristic, connectivity=FourN):
         self.map = grid.values
-        self.nhood = neighborhood
-        self.shape = self.map.shape[::-1]
+        self.nhood = connectivity
+        self.shape = self.map.shape[::-1] # account for xy reversal of cell axis
+        self.cost = cost
+        self.heuristic = heuristic
 
-    def cost(self, nsrc, ndst):
-        return 1.
-    
     def neighbors(self, node):
         node = np.asarray(node)
         nodes = node + self.nhood
@@ -69,9 +68,6 @@ class GridGraph:
         return nodes[np.logical_and.reduce(inbounds, axis=1)]
 
     def filter_freespace(self, nodes):
-
-        print(nodes)
-        print('-------')
         cells = self.map[nodes[:, 1], nodes[:, 0]].astype(bool)
         return nodes[~cells]
 

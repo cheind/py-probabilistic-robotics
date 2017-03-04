@@ -5,14 +5,17 @@ from pytest import approx
 
 import matplotlib.pyplot as plt
 from robots.draw import Drawer
+from robots.grid import Grid
 
 # These tests use https://github.com/matplotlib/pytest-mpl
 # Generate baseline images from project root with
-#   pytest --mpl-generate-path=robots/tests/baseline_images
+#   pytest --mpl-generate-path=baseline
+# Check images in directory /baseline and copy updated images to
+# robots/tests/baseline_images.
 # Run tests with mpl comparison
 #   pytest --mpl
 
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', remove_text=True)
 def test_draw_points():
 
     fig, ax = plt.subplots()
@@ -30,7 +33,7 @@ def test_draw_points():
     d.draw_points(points, ax, marker=(5,1), fc=('r', 'b', 'g'))
     return fig
 
-@pytest.mark.mpl_image_compare(baseline_dir='baseline_images')
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', remove_text=True)
 def test_draw_lines():
 
     fig, ax = plt.subplots()
@@ -58,6 +61,24 @@ def test_draw_lines():
 
     return fig
 
+
+@pytest.mark.mpl_image_compare(baseline_dir='baseline_images', remove_text=True)
+def test_draw_grid():
+
+    fig, ax = plt.subplots()
+    ax.set_xlim([-10, 10])
+    ax.set_ylim([-10, 10])
+    ax.set_aspect('equal')
+
+    mask = np.zeros((10,10))
+    mask[:, 0] = 1
+    mask[:, -1] = 1
+    g = Grid(mask, [-5,-5], [5, 5], pose=[0,0,math.pi/2]) # requires matplotlib 2.x on windows / qt
+
+    d = Drawer()
+    d.draw_grid(g, ax)
+
+    return fig
 
 def test_confidence_ellipse_params():
 

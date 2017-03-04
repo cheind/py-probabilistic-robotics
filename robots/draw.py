@@ -16,6 +16,17 @@ from robots import transforms
 from robots.posenode import PoseNode
 
 class BaseDrawer:
+    """Base class for drawing utils.
+    
+    Each drawer holds a map from keys to artists to be drawn. 
+    This allows effective redrawing by reusing keys instead of regenerating
+    the artists every time frame.
+
+    Keys consist of two hashable elements:
+      - the canvas - matplotlib axis element
+      - identifier - a hashable element that identifies the element to be drawn.
+    """
+
     def __init__(self):
         self.items = {}
 
@@ -38,11 +49,36 @@ class BaseDrawer:
         
         return artists
 
+    def make_transform(self, m, ax):
+        if m is None:
+            return ax.transData
+        elif isinstance(m, np.ndarray):
+            if m.shape == (3,3):
+                return mplt.Affine2D(matrix=m) + ax.transData
+            else:
+                return mplt.Affine2D(matrix=transforms.transform_from_pose(m)) + ax.transData
+        elif isinstance(m, mplt.Affine2DBase):
+            return m + ax.transdata
+        else:
+            raise TypeError('Unknown transform type.')
+
 class Drawer(BaseDrawer):
+    """Default drawing util.
+
+    Provides high level drawing commands for various classes inheriting PoseNode 
+    and low level routines for drawing basic items.
+    """
     
-    RobotArtists = namedtuple('RobotArtists', 'circle, linex, liney')
+    class RobotArtists(namedtuple('RobotArtists', 'circle, linex, liney')):
+        """Artists associated with a robot draw command."""
+        pass
 
     def draw_robot(self, robot, ax, **kwargs):
+        """Draw or update robot.
+
+        A robot is drawn using a circle and a xy-frame to determine its orientation.
+        """
+
         key = (ax, kwargs.pop('key', self.keyfor(robot)))
 
         radius = kwargs.pop('radius', 0.5)
@@ -61,27 +97,33 @@ class Drawer(BaseDrawer):
             return artists
         
         artists = self.get_artists(key, create_artists)
-        tr = mplt.Affine2D(matrix=robot.transform_to_world) + ax.transData
+        t = self.make_transform(robot.transform_to_world, ax)
          
         artists.circle.set_radius(radius)
         artists.circle.set_zorder(zorder)
-        artists.circle.set_transform(tr)
+        artists.circle.set_transform(t)
 
         artists.linex.set_xdata([0., radius])
         artists.linex.set_ydata([0., 0])
         artists.linex.set_zorder(zorder)
-        artists.linex.set_transform(tr)
+        artists.linex.set_transform(t)
 
         artists.liney.set_xdata([0., 0])
         artists.liney.set_ydata([0., radius])
         artists.liney.set_zorder(zorder)
-        artists.liney.set_transform(tr)
+        artists.liney.set_transform(t)
 
         return artists
 
-    SensorArtists = namedtuple('SensorArtists', 'wedge')
+    class SensorArtists(namedtuple('SensorArtists', 'wedge')):
+        """Artists associated with a sensor draw command."""
+        pass
 
     def draw_sensor(self, sensor, ax, **kwargs):
+        """Draw or update a sensor and its field of view.
+
+        A sensor is drawn as a wedge indicating its field of view.
+        """
         key = (ax, kwargs.pop('key', self.keyfor(sensor)))
 
         fc = kwargs.pop('fc', 'r')
@@ -102,14 +144,16 @@ class Drawer(BaseDrawer):
             return artists
 
         artists = self.get_artists(key, create_artists)
-        tr = mplt.Affine2D(matrix=sensor.transform_to_world) + ax.transData
-        artists.wedge.set_transform(tr)
+        artists.wedge.set_transform(self.make_transform(sensor.transform_to_world, ax))
         
         return artists
 
-    GridArtists = namedtuple('GridArtists', 'image')
+    class GridArtists(namedtuple('GridArtists', 'image')):
+        """Artists associated with a grid draw command."""
+        pass
 
     def draw_grid(self, grid, ax, **kwargs):
+        """Draw or update a Grid node."""        
         key = (ax, kwargs.pop('key', self.keyfor(grid)))
 
         cmap = kwargs.pop('cmap', 'gray_r')
@@ -131,17 +175,18 @@ class Drawer(BaseDrawer):
             return artists
 
         artists = self.get_artists(key, create_artists)
-
-        # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
-        tr = mplt.Affine2D(matrix=grid.transform_to_world) + ax.transData 
         artists.image.set_data(grid.values)
-        artists.image.set_transform(tr)
+        # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
+        artists.image.set_transform(self.make_transform(grid.transform_to_world, ax))
 
         return artists
 
-    PointArtists = namedtuple('PointArtists', 'scatter')
+    class PointArtists(namedtuple('PointArtists', 'scatter')):
+        """Artists associated with a point list draw command."""
+        pass
 
     def draw_points(self, points, ax, **kwargs):
+        """Draw or update a set of 2D points."""
         key = (ax, kwargs.pop('key', self.keyfor(points)))
         
         size = kwargs.pop('size', 80)
@@ -168,8 +213,12 @@ class Drawer(BaseDrawer):
         return artists
 
 
-    LineArtists = namedtuple('LineArtists', 'lines')
+    class LineArtists(namedtuple('LineArtists', 'lines')):
+        """Artists associated with a line draw command."""
+        pass
+
     def draw_lines(self, segments, ax, **kwargs):
+        """Draw or update a set of 2D lines."""
         key = (ax, kwargs.pop('key', self.keyfor(segments)))
         ec = kwargs.pop('ec', 'k')        
         t = kwargs.pop('transform', None)
@@ -187,15 +236,20 @@ class Drawer(BaseDrawer):
         artists = self.get_artists(key, create_artists)
         artists.lines.set_segments(transposed_lines)
         artists.lines.set_edgecolors(ec)
+        artists.lines.set_transform(self.make_transform(t, ax))
         return artists
 
-    ConfidenceEllipseArtists = namedtuple('ConfidenceEllipseArtists', 'ellipses')
+    class ConfidenceEllipseArtists(namedtuple('ConfidenceEllipseArtists', 'ellipses')):
+        """Artists associated with a ellipse draw command."""
+        pass
 
     def draw_confidence_ellipses(self, u, cov, ax, **kwargs):
+        """Draw or update a set of confidence ellipses."""
         key = (ax, kwargs.pop('key', self.keyfor(u, cov)))
         fc = kwargs.pop('fc', 'none')
         ec = kwargs.pop('ec', 'k')        
         zorder = kwargs.pop('zorder', 1)
+        t = kwargs.pop('transform', None)
 
         chisquare_val = kwargs.pop('scale', 5.991) # 95% confidence area based on chi2(2dof, 0.05)
         
@@ -222,7 +276,8 @@ class Drawer(BaseDrawer):
                 facecolors=fc,
                 edgecolors=ec,
                 zorder=zorder,
-                alpha=0.5
+                alpha=0.5,
+                transform=self.make_transform(t, ax)
             )
         )
         for a in artists:

@@ -96,7 +96,7 @@ if __name__ == '__main__':
     #landmarks[:, 0] = robot.transform_to_world[:2, 2]
 
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
-    #sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position', environment=world, parent=robot)
+    sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=math.pi, maxdist=20., measure='position', environment=world, parent=robot)
 
     drawer = Drawer()
     fig, ax = plt.subplots()
@@ -156,16 +156,16 @@ if __name__ == '__main__':
         robot.move(m)
         #k.predict(m)
         
-        #landmark_mask, landmark_pos = sensor.sense()
-        #landmark_pos = landmark_pos[:, landmark_mask]
+        landmark_mask, landmark_pos = sensor.sense()
+        landmark_pos = landmark_pos[:, landmark_mask]
         #landmark_indices = np.where(landmark_mask)[0]
         #if np.sum(landmark_mask) > 2:
         #    k.update(landmark_mask, landmark_pos)
 
         # First sensor
-        colors = ['g']#['g' if m else 'b' for m in landmark_mask]
+        colors = ['g' if m else 'b' for m in landmark_mask]
         u = drawer.draw_robot(robot, ax, radius=1.5)        
-        #u += drawer.draw_sensor(sensor, ax)        
+        u += drawer.draw_sensor(sensor, ax)        
         u += drawer.draw_points(landmarks, ax, fc=colors)
         #u += drawer.draw_confidence_ellipses([landmarks[:, 1], robot.pose[:2]], [k.P[4:6,4:6], k.P[:2,:2]], ax, key='conf', scale=40)
         

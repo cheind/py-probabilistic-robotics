@@ -90,7 +90,7 @@ if __name__ == '__main__':
         np.random.uniform(-20.0, 120.0, [1, 50])))
 
     # Virtual x,y,phi robot
-    robot = XYPhiRobot(pose=[50, 30,0], err=[0.0, 0.0])
+    robot = XYPhiRobot(pose=[50, 30,0], err=[0.5, 0.1])
 
     # robot starts exactly at landmark
     #landmarks[:, 0] = robot.transform_to_world[:2, 2]
@@ -143,9 +143,6 @@ if __name__ == '__main__':
                 dphi = phit - phir
                 #print('delta ', dphi)
                 u = np.array([dphi, 1.0])
-                #if x:
-                #    while True:
-                #        yield np.zeros((2,))
                 yield u
     movement_gen = movement()
     

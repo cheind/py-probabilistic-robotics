@@ -47,6 +47,19 @@ class XYPhiRobot(PoseNode):
 
         pose = np.array(kwargs.pop('pose', [0.,0.,0.]), dtype=float)
         super(XYPhiRobot, self).__init__(pose=pose)
+        
+        self.right = True # used for angle representation
+
+    def _normalized_phi(self, phi):
+        return phi
+        if self.right:
+            if phi > 3 * np.pi / 4 or phi < -3 * np.pi / 4:
+                phi = np.arctan2(np.sin(phi - np.pi), np.cos(phi - np.pi)) + np.pi # phi in [0..2pi]
+                self.right = False
+        elif phi < np.pi / 4 or phi > -7 * np.pi / 4:
+                phi = np.arctan2(np.sin(phi), np.cos(phi))  # phi in [-pi, pi]
+                self.right = True
+        return phi
 
     def move(self, motion, **kwargs):
         """Move robot by first turning and then driving along the robot's new heading (x-axis).
@@ -70,8 +83,8 @@ class XYPhiRobot(PoseNode):
         e *= sigma
 
         phi = self.pose[2] + motion[0] + e[0]
+        phi = np.arctan2(np.sin(phi), np.cos(phi))  # phi in [-pi, pi]
+        #print('new phi robot ', phi)
         self.pose[0] += math.cos(phi) * (motion[1] + e[1])
         self.pose[1] += math.sin(phi) * (motion[1] + e[1])
-        self.pose[2] = phi
-        
-
+        self.pose[2] = phi#self._normalized_phi(phi)

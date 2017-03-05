@@ -28,7 +28,7 @@ def test_astar():
     grid = Grid(mask, [0,0], [6,5])
     graph = GridGraph(grid, lambda a,b: 1., lambda a,b: 0.)
 
-    path = astar((0, 0), (4, 4), graph)
+    path, costs = astar((0, 0), (4, 4), graph)
     np.testing.assert_allclose(path, [
         [0, 0],
         [0, 1],
@@ -40,25 +40,7 @@ def test_astar():
         [3, 4],
         [4, 4]
     ]) # note, cells are [col, row] as points are [x, y]
-
-    """
-    import matplotlib.pyplot as plt
-    from robots.draw import Drawer
-    
-    fig, ax = plt.subplots()
-    ax.set_xlim([-10, 10])
-    ax.set_ylim([-10, 10])
-    ax.set_aspect('equal')
-
-    d = Drawer()
-    d.draw_grid(grid, ax)
-    d.draw_points(np.array([[0,4],[0,4]]) + [[0.5],[0.5]], ax, fc='r')
-    lines = np.asarray(path).T + [[0.5],[0.5]]
-    d.draw_lines(lines.reshape(1,2,-1), ax)
-
-    plt.show()
-    """
-
+    assert costs == 8
 def test_astar_nopath():
 
     mask = np.array([
@@ -74,5 +56,6 @@ def test_astar_nopath():
     def heuristic(node, goal):
         return 0.
 
-    path = astar((0, 0), (2, 0), graph)
+    path, cost = astar((0, 0), (2, 0), graph)
     np.testing.assert_allclose(path, [])
+    assert np.isinf(cost)

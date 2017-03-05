@@ -2,19 +2,23 @@
 import numpy as np
 from heapq import heappush, heappop
 
-def astar(start, goal, graph):
+def astar(start, goal, graph, return_explored=False):
     """A-star path planning."""
     
     costs = {} # Costs so far per node
-    source = {} # For each node the node we came from
+    source = {} # Track parents for each node for path reconstruction
 
     costs[start] = 0.
     source[start] = None
 
     marchfront = [(0, start)] # Open list of nodes to explore
     pathfound = False
+    explored = []
     while marchfront:
         p = heappop(marchfront)[1]
+
+        if return_explored:
+            explored.append(p)
 
         if p == goal:
             pathfound = True
@@ -24,21 +28,26 @@ def astar(start, goal, graph):
             cost = costs[p] + graph.cost(p, n)
             if not n in costs or cost < costs[n]:
                 costs[n] = cost
-                heappush(marchfront, (cost + graph.heuristic(n, p), n))
+                heappush(marchfront, (cost + graph.heuristic(n, goal), n))
                 source[n] = p
         
+    path = []
+    finalcost = float('inf')
     if pathfound:
-        # Reconstruct path walking from goal to start
+        # Reconstruct path by walking from goal to start
         n = goal
-        path = [goal]
+        path.append(goal)
         while n is not start:
             s = source[n]
             path.append(s)
             n = s
-        return path[::-1]
+        path = path[::-1]
+        finalcost = costs[goal]
+    
+    if return_explored:
+        return path, finalcost, explored
     else:
-        return []
-
+        return path, finalcost
 
 class GridGraph:
 

@@ -5,11 +5,12 @@ from robots.draw import Drawer
 from robots.grid import Grid
 from robots.planning.gridgraph import GridGraph
 from robots.planning.astar import astar
+from robots.planning.smooth import smooth_path
 
 submask = np.array([
     [0, 1, 0, 0, 0, 0],
-    [0, 1, 0, 0, 0, 1],
-    [0, 1, 0, 1, 1, 1],
+    [0, 1, 0, 0, 0, 0],
+    [0, 1, 0, 1, 1, 0],
     [0, 1, 0, 0, 1, 0],
     [0, 0, 0, 0, 1, 0]
 ])
@@ -17,7 +18,6 @@ submask = np.array([
 mask = np.zeros((10,10))
 mask[:5, :6] = submask
 grid = Grid(mask, [0,0], [10,10])
-
 
 def cost(a, b):
     """Cost for moving between a and neighbor b. 
@@ -43,14 +43,18 @@ def heuristic(a, goal):
 
 # A* algorithms assumes hashable nodes, so we use tuples instead of np.ndarray
 start = (0, 0) # x,y not row,col
-goal = (6, 2)
+goal = (5, 3)
+
+def draw_path(drawer, ax, path, color):
+    lines = np.asarray(path).T + 0.5
+    drawer.draw_lines(lines.reshape(1,2,-1), ax, ec=color)
 
 # The Gridgraph provides movements on a grid like structure. A* does not make any
 # assumption about topology of movements.
 graph = GridGraph(grid.values, cost, heuristic, connectivity=GridGraph.FourN)
 path, c, explored = astar(start, goal, graph, return_explored=True)
 
-if path:
+if path:    
     print('Costs are {}'.format(c))
 
     fig, ax = plt.subplots()
@@ -62,16 +66,56 @@ if path:
 
     d = Drawer()
 
-    for c in explored:
-        grid.values[c[1], c[0]] = 0.5
+    for i, c in enumerate(explored):
+        grid.values[c[1], c[0]] = 1. / (i + 2)
 
     d.draw_grid(grid, ax, zorder=1)
     d.draw_points(np.asarray([start]).T + 0.5, ax, fc='r')
     d.draw_points(np.asarray([goal]).T + 0.5, ax, fc='g')
-    lines = np.asarray(path).T + 0.5
-    d.draw_lines(lines.reshape(1,2,-1), ax)
+
+    draw_path(d, ax, path, 'k')
+    draw_path(d, ax, smooth_path(path, 0.5), 'y')
+
     ax.invert_yaxis()
     plt.grid()
     plt.show()
+
 else:
     print('No path found.')
+
+
+
+## Trying differnt settings of smoothness
+
+path = np.array([
+    [0, 0],
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [1, 3],
+    [2, 3],
+    [3, 3],
+    [4, 3],
+    [4, 4],
+    [4, 5],
+    [4, 6]
+])
+
+fig, ax = plt.subplots()
+ax.set_xlim([0, 10])
+ax.set_ylim([0, 10])
+ax.set_xticks(np.arange(0, 11, 1))
+ax.set_yticks(np.arange(0, 11, 1))
+ax.set_aspect('equal')
+
+d = Drawer()
+draw_path(d, ax, path, 'k')
+draw_path(d, ax, smooth_path(path, smoothweight=0.1), 'g')
+draw_path(d, ax, smooth_path(path, smoothweight=0.5), 'r')
+draw_path(d, ax, smooth_path(path, smoothweight=1.0), 'b')
+draw_path(d, ax, smooth_path(path, smoothweight=10.0), 'y')
+
+
+ax.invert_yaxis()
+plt.grid()
+plt.show()

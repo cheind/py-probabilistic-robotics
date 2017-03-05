@@ -33,7 +33,7 @@ class BaseDrawer:
     def keyfor(self, *objs):
         hashable = []
         for obj in objs:
-            if isinstance(obj, (PoseNode, np.ndarray, _AxesBase)):
+            if isinstance(obj, (PoseNode, _AxesBase)):
                 hashable.append(id(obj))
             else:
                 import uuid    

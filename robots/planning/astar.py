@@ -3,7 +3,50 @@ import numpy as np
 from heapq import heappush, heappop
 
 def astar(start, goal, graph, return_explored=False):
-    """A-star path planning."""
+    """A-star path planning.
+    
+    A* is a graph based algorithm to compute the a path between
+    a start and goal node. A* explores unknown regions of the 
+    graph using the connectivity of nodes provided by the graph.
+    Nodes to be explored are priorized by the cost of getting
+    to the node (sum of costs) plus some remaining cost estimage 
+    to the goal (heuristic). A good heuristic allows A* to prune
+    a huge number of potential nodes to explore, improving its 
+    performance.
+
+    Note that all nodes need to be hashable types.  
+
+    Params
+    ------
+    start
+        Start node for planning. Node is of unspecified type but needs to
+        be hashable.
+    goal
+        Goal node for planning. Node is of unspecified type but needs to
+        be hashable.
+    graph : object
+        An object that needs to provide the following operations
+        
+        graph.neighbors(n) -> list of nodes
+        All explorable neighbor nodes of n
+
+        graph.cost(a, b) -> float
+        The cost of moving from a to neighbor b
+
+        graph.heuristic(a, goal) -> float
+        An optimistic guess of the remaining costs for moving from a to goal.
+    return_explored : bool
+        Wether or not to return all explored nodes in order of discovery.
+
+    Returns
+    -------
+    path : array of nodes
+        Sorted array of nodes from start to goal, or empty array if no path was found.
+    finalcost : float
+        Final cost for getting from start to goal, or infinite if no path was found.
+    explored : array of nodes
+        Array of nodes explored during traversal in order of discovery.
+    """
     
     costs = {} # Costs so far per node
     source = {} # Track parents for each node for path reconstruction
@@ -48,35 +91,4 @@ def astar(start, goal, graph, return_explored=False):
         return path, finalcost, explored
     else:
         return path, finalcost
-
-class GridGraph:
-
-    FourN = np.array([
-        [0, -1], #N
-        [1, 0],  #E
-        [0, 1],  #S
-        [-1, 0]  #W 
-    ], dtype=int)
-
-    def __init__(self, grid, cost, heuristic, connectivity=FourN):
-        self.map = grid.values
-        self.nhood = connectivity
-        self.shape = self.map.shape[::-1] # account for xy reversal of cell axis
-        self.cost = cost
-        self.heuristic = heuristic
-
-    def neighbors(self, node):
-        node = np.asarray(node)
-        nodes = node + self.nhood
-        nodes = self.filter_inbounds(nodes)
-        nodes = self.filter_freespace(nodes)
-        return tuple(map(tuple, nodes)) # convert to tuples to make them hashable
-
-    def filter_inbounds(self, nodes):
-        inbounds = np.logical_and(nodes >= 0, nodes < self.shape)
-        return nodes[np.logical_and.reduce(inbounds, axis=1)]
-
-    def filter_freespace(self, nodes):
-        cells = self.map[nodes[:, 1], nodes[:, 0]].astype(bool)
-        return nodes[~cells]
 

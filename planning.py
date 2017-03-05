@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from robots.draw import Drawer
 from robots.grid import Grid
-from robots.planning.astar import GridGraph
+from robots.planning.gridgraph import GridGraph
 from robots.planning.astar import astar
 
 submask = np.array([
@@ -47,7 +47,7 @@ goal = (6, 2)
 
 # The Gridgraph provides movements on a grid like structure. A* does not make any
 # assumption about topology of movements.
-graph = GridGraph(grid, cost, heuristic, connectivity=GridGraph.FourN)
+graph = GridGraph(grid.values, cost, heuristic, connectivity=GridGraph.FourN)
 path, c, explored = astar(start, goal, graph, return_explored=True)
 
 if path:

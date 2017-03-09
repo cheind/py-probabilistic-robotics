@@ -11,10 +11,20 @@ class PolynomialTrajectory:
         if points.ndim == 1:
             points = points.reshape(-1, 1)
 
-        v = np.asarray(v)
-
         nseg = points.shape[0] - 1
         naxis = points.shape[1]
+
+        v = np.asarray(v)
+        if v.ndim == 1:
+            v = v.reshape(-1, 1)
+            if naxis > 1:
+                v = np.tile(v, (1, naxis))
+
+        a = np.asarray(a)
+        if a.ndim == 1:
+            a = a.reshape(-1, 1)
+            if naxis > 1:
+                a = np.tile(a, (1, naxis))
 
         assert nseg > 0
         assert len(v) == nseg + 1 or len(v) == 2
@@ -135,7 +145,7 @@ class PolynomialTrajectory:
         return c
 
 
-traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0], [0,0])
+traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0, 0, 0, 0], [0,0])
 #t = np.linspace(0, 10, 1000)
 t = np.arange(0,10,0.01)
 x, dx, ddx = traj(t)

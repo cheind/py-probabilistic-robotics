@@ -1,13 +1,30 @@
 import numpy as np
 import math
 
-
 class PolynomialTrajectory:
+    """Computes a trajectory by fitting polynomials to a set of configuration samples.
 
+    Given N via points in M coordinates, N-1 segment times, N target velocities at via points 
+    and optionally N target accelerations at via points, this class computes a trajectory 
+    by fitting third or fifth order polynomials.
+
+    The trajectory will pass the via points exactly. The boundary conditions related to 
+    via point velocitie and accelerations are also matched exactly. While the system is 
+    matches the requirements at via points nicely, it might generate trajectories with 
+    large velocities or accelerations in between the via points.
+
+    PolynomialTrajectory precomputes its coefficients at construction and can therefore
+    be queried efficiently. For each query time `t` the point, velocity and acceleration
+    profile is returned.
+
+        traj = PolynomialTrajectory(points=[10, 30], dt=[1], v=[0, 0], a=[0, 0])
+        t = np.arange(-0.1, 1.1, 0.01)
+        x, dx, ddx = traj(t)
+
+    """
 
     def __init__(self, points, dt, v, a=None):
-
-        points = np.asarray(points)
+        points = np.asarray(points).astype(float)
         if points.ndim == 1:
             points = points.reshape(-1, 1)
 
@@ -19,17 +36,18 @@ class PolynomialTrajectory:
             v = v.reshape(-1, 1)
             if naxis > 1:
                 v = np.tile(v, (1, naxis))
-
-        a = np.asarray(a)
-        if a.ndim == 1:
-            a = a.reshape(-1, 1)
-            if naxis > 1:
-                a = np.tile(a, (1, naxis))
+        
+        if a is not None:
+            a = np.asarray(a)
+            if a.ndim == 1:
+                a = a.reshape(-1, 1)
+                if naxis > 1:
+                    a = np.tile(a, (1, naxis))
 
         assert nseg > 0
-        assert len(v) == nseg + 1 or len(v) == 2
-        assert a is None or (len(a) == nseg + 1 or len(a) == 2)
-        assert len(dt) == nseg       
+        assert len(dt) == nseg
+        assert v.shape == points.shape or v.shape == (2, points.shape[1])
+        assert a is None or (a.shape == points.shape or a.shape == (2, points.shape[1]))
 
         self.t = np.zeros(nseg + 1, dtype=float)
         self.t[1:] = np.cumsum(dt)
@@ -38,59 +56,58 @@ class PolynomialTrajectory:
         self.order = 4 if a is None else 6    
         self.nseg = nseg
 
+        def estimate_rates(x, dx, t):
+            dxnew = np.zeros(x.shape)
+            dxnew[0] = dx[0]
+            dxnew[-1] = dx[-1]
+
+            for i in range(1, len(dxnew) - 1):
+                vk = (x[i] - x[i-1]) / (t[i] - t[i-1])
+                vkn = (x[i+1] - x[i]) / (t[i+1] - t[i])
+                mask = np.sign(vk) == np.sign(vkn)
+                dxnew[i] = np.select([mask, ~mask], [0.5 * (vk + vkn), 0.])
+            return dxnew
+
         if len(v) == 2:
             # Heuristically determine velocities
-            vnew = np.zeros(points.shape)
-            vnew[0] = v[0]
-            vnew[-1] = v[-1]
-
-            for i in range(1, len(vnew) - 1):
-                vk = (points[i] - points[i-1]) / (self.t[i] - self.t[i-1])
-                vkn = (points[i+1] - points[i]) / (self.t[i+1] - self.t[i])
-                mask = np.sign(vk) == np.sign(vkn)
-                vnew[i] = np.select([mask, ~mask], [0.5 * (vk + vkn), 0.])
-            v = vnew
+            v = estimate_rates(points, v, self.t)
 
         if a is not None and len(a) == 2:
-            # Heuristically determine velocities
-            anew = np.zeros(points.shape)
-            anew[0] = a[0]
-            anew[-1] = a[-1]
-
-            for i in range(1, len(anew) - 1):
-                ak = (v[i] - v[i-1]) / (self.t[i] - self.t[i-1])
-                akn = (v[i+1] - v[i]) / (self.t[i+1] - self.t[i])
-                mask = np.sign(ak) == np.sign(akn)
-                anew[i] = np.select([mask, ~mask], [0.5 * (ak + akn), 0.])
-            a = anew
+            # Heuristically determine accelerations
+            a = estimate_rates(v, a, self.t)
         
-        self.coeff = np.zeros((naxis, nseg*self.order))
+        self.coeff = np.zeros((nseg*self.order, naxis))
         if self.order == 4:            
             for i in range(naxis):                
-                self.coeff[i, :] = PolynomialTrajectory.solve_cubic(points[:, i], self.t, v[:, i])
+                self.coeff[:, i] = PolynomialTrajectory.solve_cubic(points[:, i], self.t, v[:, i])
         else:
             for i in range(naxis):                
-                self.coeff[i, :] = PolynomialTrajectory.solve_quintic(points[:, i], self.t, v[:, i], a[:, i])
+                self.coeff[:, i] = PolynomialTrajectory.solve_quintic(points[:, i], self.t, v[:, i], a[:, i])
 
 
     def __call__(self, t):
-        t = np.atleast_1d(t)
+        scalar = np.isscalar(t)
+        t = np.atleast_1d(t)        
         
         t = np.clip(t, 0., self.total_time)
         i = np.digitize(t, self.t) - 1
         i = np.clip(i, 0, self.nseg - 1)
         
-        c = i * self.order
+        t = t.reshape(-1, 1) # To make elementwise ops working
+        r = i * self.order
+
+        print(self.coeff[r+1].shape)
+
         if self.order == 4:
-            x = self.coeff[:, c+0] + self.coeff[:, c+1]*t + self.coeff[:, c+2]*t**2 + self.coeff[:, c+3]*t**3
-            dx = self.coeff[:, c+1] + 2 * self.coeff[:, c+2]*t + 3*self.coeff[:, c+3]*t**2
-            ddx = 2 * self.coeff[:, c+2] + 6*self.coeff[:, c+3]*t
-            return x, dx, ddx
+            x = self.coeff[r+0] + self.coeff[r+1]*t + self.coeff[r+2]*t**2 + self.coeff[r+3]*t**3
+            dx = self.coeff[r+1] + 2 * self.coeff[r+2]*t + 3*self.coeff[r+3]*t**2
+            ddx = 2 * self.coeff[r+2] + 6*self.coeff[r+3]*t            
         else:
-            x = self.coeff[:, c+0] + self.coeff[:, c+1]*t + self.coeff[:, c+2]*t**2 + self.coeff[:, c+3]*t**3 + self.coeff[:, c+4]*t**4 + self.coeff[:, c+5]*t**5
-            dx = self.coeff[:, c+1] + 2 * self.coeff[:, c+2]*t + 3*self.coeff[:, c+3]*t**2 + 4*self.coeff[:, c+4]*t**3 + 5*self.coeff[:, c+5]*t**4
-            ddx = 2 * self.coeff[:, c+2] + 6*self.coeff[:, c+3]*t + 12*self.coeff[:, c+4]*t**2 + 20*self.coeff[:, c+5]*t**3
-            return x, dx, ddx
+            x = self.coeff[r+0] + self.coeff[r+1]*t + self.coeff[r+2]*t**2 + self.coeff[r+3]*t**3 + self.coeff[r+4]*t**4 + self.coeff[r+5]*t**5
+            dx = self.coeff[r+1] + 2 * self.coeff[r+2]*t + 3*self.coeff[r+3]*t**2 + 4*self.coeff[r+4]*t**3 + 5*self.coeff[r+5]*t**4
+            ddx = 2 * self.coeff[r+2] + 6*self.coeff[r+3]*t + 12*self.coeff[r+4]*t**2 + 20*self.coeff[r+5]*t**3
+        
+        return (x, dx, ddx) if not scalar else (x[0], dx[0], ddx[0])
 
 
     @staticmethod
@@ -145,42 +162,28 @@ class PolynomialTrajectory:
         return c
 
 
-traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0, 0, 0, 0], [0,0])
-#t = np.linspace(0, 10, 1000)
-t = np.arange(0,10,0.01)
-x, dx, ddx = traj(t)
+if __name__ == '__main__':
+    traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0, 0, 0, 0], [0, 0])
+    t = np.linspace(-1, 11, 1000)
+    x, dx, ddx = traj(t)
 
 
-import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-fig = plt.figure()
-ax1 = fig.add_subplot(2, 2, 1)
-ax1.set_title('Position')
-ax2 = fig.add_subplot(2, 2, 2)
-ax2.set_title('Velocity')
-ax3 = fig.add_subplot(2, 2, 3)
-ax3.set_title('Acceleration')
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax1.set_title('Position')
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax2.set_title('Velocity')
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax3.set_title('Acceleration')
 
-ax1.scatter([0, 2, 4, 8, 10], [10, 20, 0, 30, 40])
-ax1.plot(t, x[0])
-#ax2.plot(t, dx[0])
-ax2.plot(t[1:], np.diff(x[0])/0.01)
-ax3.plot(t, ddx[0])
-plt.tight_layout()
-plt.show()
-
-
-"""
-traj = PolynomialTrajectory(
-    np.array([
-        [10, 0], 
-        [20, 5],
-        [10, 0]
-    ]),
-    [2, 2], 
-    [0, 0]
-)
-"""
+    #ax1.scatter([0, 2, 4, 8, 10], [10, 20, 0, 30, 40])
+    ax1.plot(t, x[:, 0])
+    ax2.plot(t, dx[:, 0])
+    ax3.plot(t, ddx[:, 0])
+    plt.tight_layout()
+    plt.show()
 
 
 # from collections import namedtuple

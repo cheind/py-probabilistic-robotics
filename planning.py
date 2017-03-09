@@ -6,6 +6,7 @@ from robots.grid import Grid
 from robots.planning.gridgraph import GridGraph
 from robots.planning.astar import astar
 from robots.planning.smooth import smooth_path
+from robots.planning.trajectories import PolynomialTrajectory
 
 submask = np.array([
     [0, 1, 0, 0, 0, 0],
@@ -74,12 +75,19 @@ if path:
     d.draw_points(np.asarray([goal]).T + 0.5, ax, fc='g')
 
     draw_path(d, ax, path, 'k')
-    draw_path(d, ax, smooth_path(path, 0.5), 'y')
+    
+    spath = smooth_path(path, 0.5)
+    draw_path(d, ax, spath, 'y')
 
+    traj = PolynomialTrajectory(spath, [2]*(len(path)-1), [0,0], [0,0])
+    t = np.arange(0, traj.total_time, 0.1)
+    x, dx, ddx = traj(t)
+    draw_path(d, ax, x, 'g')
+    
     ax.invert_yaxis()
     plt.grid()
     plt.show()
-
+    
 else:
     print('No path found.')
 

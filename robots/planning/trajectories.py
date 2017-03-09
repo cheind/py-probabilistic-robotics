@@ -2,17 +2,89 @@ import numpy as np
 import math
 
 
-class CubicTrajectory:
+class PolynomialTrajectory:
 
 
-    def __init__(self, points, dt, velocities):
-        
-        self.t = np.zeros(len(dt) + 1, dtype=float)
+    def __init__(self, points, dt, v, a=None):
+
+        points = np.asarray(points)
+        if points.ndim == 1:
+            points = points.reshape(-1, 1)
+
+        v = np.asarray(v)
+
+        nseg = points.shape[0] - 1
+        naxis = points.shape[1]
+
+        assert nseg > 0
+        assert len(v) == nseg + 1 or len(v) == 2
+        assert a is None or (len(a) == nseg + 1 or len(a) == 2)
+        assert len(dt) == nseg       
+
+        self.t = np.zeros(nseg + 1, dtype=float)
         self.t[1:] = np.cumsum(dt)
+        self.total_time = np.sum(dt)
 
-        self.solve_for_axis(points, self.t, velocities)
+        self.order = 4 if a is None else 6    
+        self.nseg = nseg
 
-    def solve_for_axis(self, x, t, v):
+        if len(v) == 2:
+            # Heuristically determine velocities
+            vnew = np.zeros(points.shape)
+            vnew[0] = v[0]
+            vnew[-1] = v[-1]
+
+            for i in range(1, len(vnew) - 1):
+                vk = (points[i] - points[i-1]) / (self.t[i] - self.t[i-1])
+                vkn = (points[i+1] - points[i]) / (self.t[i+1] - self.t[i])
+                mask = np.sign(vk) == np.sign(vkn)
+                vnew[i] = np.select([mask, ~mask], [0.5 * (vk + vkn), 0.])
+            v = vnew
+
+        if a is not None and len(a) == 2:
+            # Heuristically determine velocities
+            anew = np.zeros(points.shape)
+            anew[0] = a[0]
+            anew[-1] = a[-1]
+
+            for i in range(1, len(anew) - 1):
+                ak = (v[i] - v[i-1]) / (self.t[i] - self.t[i-1])
+                akn = (v[i+1] - v[i]) / (self.t[i+1] - self.t[i])
+                mask = np.sign(ak) == np.sign(akn)
+                anew[i] = np.select([mask, ~mask], [0.5 * (ak + akn), 0.])
+            a = anew
+        
+        self.coeff = np.zeros((naxis, nseg*self.order))
+        if self.order == 4:            
+            for i in range(naxis):                
+                self.coeff[i, :] = PolynomialTrajectory.solve_cubic(points[:, i], self.t, v[:, i])
+        else:
+            for i in range(naxis):                
+                self.coeff[i, :] = PolynomialTrajectory.solve_quintic(points[:, i], self.t, v[:, i], a[:, i])
+
+
+    def __call__(self, t):
+        t = np.atleast_1d(t)
+        
+        t = np.clip(t, 0., self.total_time)
+        i = np.digitize(t, self.t) - 1
+        i = np.clip(i, 0, self.nseg - 1)
+        
+        c = i * self.order
+        if self.order == 4:
+            x = self.coeff[:, c+0] + self.coeff[:, c+1]*t + self.coeff[:, c+2]*t**2 + self.coeff[:, c+3]*t**3
+            dx = self.coeff[:, c+1] + 2 * self.coeff[:, c+2]*t + 3*self.coeff[:, c+3]*t**2
+            ddx = 2 * self.coeff[:, c+2] + 6*self.coeff[:, c+3]*t
+            return x, dx, ddx
+        else:
+            x = self.coeff[:, c+0] + self.coeff[:, c+1]*t + self.coeff[:, c+2]*t**2 + self.coeff[:, c+3]*t**3 + self.coeff[:, c+4]*t**4 + self.coeff[:, c+5]*t**5
+            dx = self.coeff[:, c+1] + 2 * self.coeff[:, c+2]*t + 3*self.coeff[:, c+3]*t**2 + 4*self.coeff[:, c+4]*t**3 + 5*self.coeff[:, c+5]*t**4
+            ddx = 2 * self.coeff[:, c+2] + 6*self.coeff[:, c+3]*t + 12*self.coeff[:, c+4]*t**2 + 20*self.coeff[:, c+5]*t**3
+            return x, dx, ddx
+
+
+    @staticmethod
+    def solve_cubic(x, t, v):
         n = len(x)
         s = n - 1
 
@@ -25,29 +97,80 @@ class CubicTrajectory:
             ti = t[i]; tf = t[i+1]
 
             r = 4 * i
-            c = 3 * i
+            c = 4 * i
 
             A[r+0, c:c+4] = [1., ti, ti**2, 1*ti**3]; b[r+0] = xi # qi = c0 + c1*ti + c2*ti**2 + c3*ti**3
             A[r+1, c:c+4] = [1., tf, tf**2, 1*tf**3]; b[r+1] = xf # qf = c0 + c1*tf + c2*tf**2 + c3*tf**3
             A[r+2, c:c+4] = [0., 1., 2*ti, 3*ti**2];  b[r+2] = vi # vi = c1 + c2*2ti + c3*3ti**2
             A[r+3, c:c+4] = [0., 1., 2*tf, 3*tf**2];  b[r+3] = vf # vf = c1 + c2*2tf + c3*3tf**2
             
-        print(A)
-        print(b.T)
-
         c = np.linalg.solve(A, b)
-        print(c)
-        print(c[0])
-        print(c[0] + c[1]*1 + c[2]*1 + c[3]*1)
+        return c
+    
+    @staticmethod
+    def solve_quintic(x, t, v, a):
+        n = len(x)
+        s = n - 1
+
+        A = np.zeros((6*s, 6*s))
+        b = np.zeros(6*s)
+
+        for i in range(s):
+            xi = x[i]; xf = x[i+1]
+            vi = v[i]; vf = v[i+1]
+            ai = a[i]; af = a[i+1]
+            ti = t[i]; tf = t[i+1]
+
+            r = 6 * i
+            c = 6 * i
+
+            A[r+0, c:c+6] = [1., ti, ti**2, 1*ti**3, 1*ti**4, 1*ti**5]; b[r+0] = xi 
+            A[r+1, c:c+6] = [1., tf, tf**2, 1*tf**3, 1*tf**4, 1*tf**5]; b[r+1] = xf 
+            A[r+2, c:c+6] = [0., 1., 2*ti, 3*ti**2, 4*ti**3, 5*ti**4];  b[r+2] = vi 
+            A[r+3, c:c+6] = [0., 1., 2*tf, 3*tf**2, 4*tf**3, 5*tf**4];  b[r+3] = vf 
+            A[r+4, c:c+6] = [0., 0., 2., 6*ti, 12*ti**2, 20*ti**3];     b[r+4] = ai 
+            A[r+5, c:c+6] = [0., 0., 2., 6*tf, 12*tf**2, 20*tf**3];     b[r+5] = af 
+            
+        c = np.linalg.solve(A, b)
+        return c
 
 
-traj = CubicTrajectory(np.array([10, 30]), [1], [0, 0])
+traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0], [0,0])
+#t = np.linspace(0, 10, 1000)
+t = np.arange(0,10,0.01)
+x, dx, ddx = traj(t)
 
 
+import matplotlib.pyplot as plt
+
+fig = plt.figure()
+ax1 = fig.add_subplot(2, 2, 1)
+ax1.set_title('Position')
+ax2 = fig.add_subplot(2, 2, 2)
+ax2.set_title('Velocity')
+ax3 = fig.add_subplot(2, 2, 3)
+ax3.set_title('Acceleration')
+
+ax1.scatter([0, 2, 4, 8, 10], [10, 20, 0, 30, 40])
+ax1.plot(t, x[0])
+#ax2.plot(t, dx[0])
+ax2.plot(t[1:], np.diff(x[0])/0.01)
+ax3.plot(t, ddx[0])
+plt.tight_layout()
+plt.show()
 
 
-
-
+"""
+traj = PolynomialTrajectory(
+    np.array([
+        [10, 0], 
+        [20, 5],
+        [10, 0]
+    ]),
+    [2, 2], 
+    [0, 0]
+)
+"""
 
 
 # from collections import namedtuple

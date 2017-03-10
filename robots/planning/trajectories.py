@@ -96,8 +96,6 @@ class PolynomialTrajectory:
         t = t.reshape(-1, 1) # To make elementwise ops working
         r = i * self.order
 
-        print(self.coeff[r+1].shape)
-
         if self.order == 4:
             x = self.coeff[r+0] + self.coeff[r+1]*t + self.coeff[r+2]*t**2 + self.coeff[r+3]*t**3
             dx = self.coeff[r+1] + 2 * self.coeff[r+2]*t + 3*self.coeff[r+3]*t**2

@@ -159,8 +159,47 @@ class PolynomialTrajectory:
         c = np.linalg.solve(A, b)
         return c
 
+def lspb(p, dt, a, v, t):
+    # x = x0 + t*v0 + 0.5*a*t**2
+    # v = a*t -> t = v/a
+    bt = v/a
+    lt = dt - 2.*bt
+
+    isacc = t < bt
+    isdeacc = t > (dt - bt)
+    islin = np.logical_and(~isacc, ~isdeacc)
+
+    x = \
+        (p[0] + 0.5*a*t**2) * isacc + \
+        (p[0] + 0.5*a*bt**2 + (t-bt)*v) * islin + \
+        (p[0] + 0.5*a*bt**2 + lt*v + (t-lt-bt)*v - 0.5*a*(t-lt-bt)**2 ) * isdeacc
+    
+    dx = \
+        (a*t) * isacc + \
+        (v) * islin + \
+        (v - a*(t-lt-bt)) * isdeacc
+
+    ddx = \
+        (a) * isacc + \
+        (0) * islin + \
+        (-a) * isdeacc
+
+    return x, dx, ddx
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    t = np.linspace(0, 5, 100)
+    x, dx, ddx = lspb([0, 10], 5, 2, 3, t)
+
+    fig, ax = plt.subplots()
+    ax.plot(t, x, label='x')
+    ax.plot(t, dx, label='dx')
+    ax.step(t, ddx, label='ddx')
+    ax.legend(loc='upper left')
+    plt.show()
+
+
+    """"
     traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0, 0, 0, 0], [0, 0])
     t = np.linspace(-1, 11, 1000)
     x, dx, ddx = traj(t)
@@ -182,6 +221,8 @@ if __name__ == '__main__':
     ax3.plot(t, ddx[:, 0])
     plt.tight_layout()
     plt.show()
+
+    """
 
 
 # from collections import namedtuple

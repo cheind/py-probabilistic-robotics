@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 from robots.draw import Drawer
 from robots.grid import Grid
@@ -44,7 +45,7 @@ def heuristic(a, goal):
 
 # A* algorithms assumes hashable nodes, so we use tuples instead of np.ndarray
 start = (0, 0) # x,y not row,col
-goal = (5, 3)
+goal = (9, 1)
 
 def draw_path(drawer, ax, path, color):
     lines = np.asarray(path).T + 0.5
@@ -55,6 +56,7 @@ def draw_path(drawer, ax, path, color):
 graph = GridGraph(grid.values, cost, heuristic, connectivity=GridGraph.FourN)
 path, c, explored = astar(start, goal, graph, return_explored=True)
 
+"""
 if path:    
     print('Costs are {}'.format(c))
 
@@ -90,9 +92,61 @@ if path:
     
 else:
     print('No path found.')
+"""
+
+fig, ax = plt.subplots()
+ax.set_xlim([0, 10])
+ax.set_ylim([0, 10])
+ax.set_xticks(np.arange(0, 11, 1))
+ax.set_yticks(np.arange(0, 11, 1))
+ax.set_aspect('equal')
+ax.invert_yaxis()
+d = Drawer()
+
+d.draw_grid(grid, ax, zorder=1)
+d.draw_points(np.asarray([start]).T + 0.5, ax, fc='r')
+d.draw_points(np.asarray([goal]).T + 0.5, ax, fc='g')
+d.draw_points(np.asarray([start]).T + 0.5, ax, fc='r', marker='o', key='loc')
+
+spath = smooth_path(path, 0.5)
+traj = PolynomialTrajectory(spath, [0.5]*(len(path)-1), [0,0], [0]*(len(path)))
+t = np.linspace(0, traj.total_time, 1000)
+x, dx, ddx = traj(t)
+draw_path(d, ax, x, 'g')
+
+def update(i):
+    t = i / 30.
+    x, dx, ddx = traj(t)
+    return d.draw_points(x + 0.5, ax, fc='r', marker='o', key='loc')
+
+ani = animation.FuncAnimation(fig, update, int(traj.total_time * 30), interval=30, blit=True, repeat=True)
+
+
+fig = plt.figure()
+ax1 = fig.add_subplot(2, 2, 1)
+ax1.set_title('Position')
+ax2 = fig.add_subplot(2, 2, 2)
+ax2.set_title('Velocity')
+ax3 = fig.add_subplot(2, 2, 3)
+ax3.set_title('Acceleration')
+ax1.plot(t, x[:, 0], label='x')
+ax1.plot(t, x[:, 1], label='y')
+ax2.plot(t, dx[:, 0], label='dx/dt')
+ax2.plot(t, dx[:, 1], label='dy/dt')
+ax3.plot(t, ddx[:, 0], label='ddx/ddt')
+ax3.plot(t, ddx[:, 1], label='ddx/ddt')
+ax1.legend(loc='upper left')
+ax2.legend(loc='upper left')
+ax3.legend(loc='upper left')
+plt.tight_layout()
+
+plt.show()
 
 
 
+
+
+"""
 ## Trying differnt settings of smoothness
 
 path = np.array([
@@ -127,3 +181,4 @@ draw_path(d, ax, smooth_path(path, smoothweight=10.0), 'y')
 ax.invert_yaxis()
 plt.grid()
 plt.show()
+"""

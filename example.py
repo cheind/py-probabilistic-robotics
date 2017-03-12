@@ -22,8 +22,9 @@ if __name__ == '__main__':
     
     # Landmarks in world space
     landmarks = np.array([
-        [3, 5, 6],
-        [3, 8, 1]
+        [3, 3],
+        [5, 8],
+        [6, 1]
     ], dtype=float)
 
     # Virtual x,y,phi robot
@@ -42,7 +43,6 @@ if __name__ == '__main__':
 
     def init():
         return drawer.draw_grid(world, ax, alpha=0.5)
-        
 
     def update(i):
         robot.move([0.02, 0.1])
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         
         # Second sensor
         mask, points = lidar.sense()        
-        points = points[:, np.where(mask)[0]]
+        points = points[np.where(mask)[0]]
         
         u += drawer.draw_points(points, ax, size=5, marker='o', transform=lidar.transform_to_world, key='lidar') # need to use drawing key as points is always a new object
         

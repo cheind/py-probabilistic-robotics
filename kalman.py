@@ -47,7 +47,7 @@ class Kalman:
         def to_state_mask(a):
             return np.hstack((a, a)).reshape(-1)
 
-        z = landmark_pos.reshape((-1, 1), order='F')
+        z = landmark_pos.reshape(-1, 1)
         z_mask = to_state_mask(~self.landmarks_seen[landmark_mask])
         n = np.sum(z_mask)
         if n:
@@ -60,7 +60,7 @@ class Kalman:
 
         lm = landmark_mask.copy()
         lm = np.vstack((lm, lm)).reshape(-1, order='F')
-               
+
         H = self.H[lm, :]
         y = z - H.dot(self.x)
         
@@ -70,12 +70,6 @@ class Kalman:
         
         self.x = self.x + K.dot(y)
         self.P = (np.eye(self.P.shape[0]) - K.dot(H)).dot(self.P)
-        
-    def true_measurement(self):
-        ts = np.repeat(self.true_state[:2], (self.x.shape[0] - 2) / 2, 1)
-        tm = self.true_state[2:].reshape((2, -1), order='F') - ts
-        return tm.reshape((-1, 1), order='F')
-
 
 if __name__ == '__main__':
     mask = np.zeros((10, 10))
@@ -85,16 +79,16 @@ if __name__ == '__main__':
     np.random.seed(0)
     
     # Landmarks in world space
-    landmarks = np.vstack((
-        np.random.uniform(-20.0, 120.0, [1, 50]),
-        np.random.uniform(-20.0, 120.0, [1, 50])))
+    landmarks = np.hstack((
+        np.random.uniform(-20.0, 120.0, [50, 1]),
+        np.random.uniform(-20.0, 120.0, [50, 1])))
 
     # Virtual x,y,phi robot
     robot = XYRobot(pose=[0,50,0], err=0.1, parent=world)
     #robot = XYPhiRobot(pose=[0,0,0], err=[0.0, 0.0])
 
     # robot starts exactly at landmark
-    landmarks[:, 0] = robot.transform_to_world[:2, 2]
+    landmarks[0] = robot.transform_to_world[:2, 2]
 
     # Virtual sensor reporting bearings in robot space. Detectable landmarks are limited by FOV, max-dist and obstacles
     sensor = LandmarkSensor(landmarks, pose=[0,0,0], err=0.1, fov=2.0 * math.pi, maxdist=40., measure='position', environment=world, parent=robot)
@@ -106,7 +100,7 @@ if __name__ == '__main__':
     ax.set_aspect('equal')
     ax.grid()
     
-    true_state = np.vstack((np.array([robot.pose[:2]]).T, landmarks.reshape((-1, 1), order='F')))
+    true_state = np.vstack((robot.pose[:2], landmarks)).reshape(-1, 1)
         
     # we know nothing but the first landmark!
     x = np.zeros(true_state.shape)
@@ -153,7 +147,7 @@ if __name__ == '__main__':
         k.predict(m)
         
         landmark_mask, landmark_pos = sensor.sense()
-        landmark_pos = landmark_pos[:, landmark_mask]
+        landmark_pos = landmark_pos[landmark_mask]
         landmark_indices = np.where(landmark_mask)[0]
         if np.sum(landmark_mask) > 2:
             k.update(landmark_mask, landmark_pos)
@@ -163,9 +157,9 @@ if __name__ == '__main__':
         u = drawer.draw_robot(robot, ax, radius=0.5)        
         u += drawer.draw_sensor(sensor, ax)        
         u += drawer.draw_points(landmarks, ax, fc=colors)
-        u += drawer.draw_confidence_ellipses([landmarks[:, 1], robot.pose[:2]], [k.P[4:6,4:6], k.P[:2,:2]], ax, key='conf', scale=40)
+        u += drawer.draw_confidence_ellipses([landmarks[1], robot.pose[:2]], [k.P[4:6,4:6], k.P[:2,:2]], ax, key='conf', scale=40)
         
-        landmarks2 = k.x[2:].reshape((2, -1), order='F')
+        landmarks2 = k.x[2:].reshape((-1, 2))
         u += drawer.draw_points(landmarks2, ax, fc='r', zorder=10, marker='.', key='landmarks2')
 
         return u

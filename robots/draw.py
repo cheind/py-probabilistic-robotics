@@ -177,7 +177,6 @@ class Drawer(BaseDrawer):
         artists = self.get_artists(key, create_artists)
         artists.image.set_data(grid.values)
         # The following requires at least matplotlib 2.x / qt4.8 for rotated grids to show correctly.
-        print(self.make_transform(grid.transform_to_world, ax))
         artists.image.set_transform(self.make_transform(grid.transform_to_world, ax))
 
         return artists
@@ -207,7 +206,7 @@ class Drawer(BaseDrawer):
             points = transforms.transform(t, points, hvalue=1.)
 
         artists = self.get_artists(key, create_artists)
-        artists.scatter.set_offsets(points.T)
+        artists.scatter.set_offsets(points)
         artists.scatter.set_zorder(zorder)
         artists.scatter.set_facecolors(fc)
         artists.scatter.set_edgecolors(ec)
@@ -229,13 +228,9 @@ class Drawer(BaseDrawer):
             artists = Drawer.LineArtists(lines=LineCollection([]))
             ax.add_collection(artists.lines)
             return artists
-
-        transposed_lines = []
-        for l in segments:
-            transposed_lines.append(l.T)
-        
+       
         artists = self.get_artists(key, create_artists)
-        artists.lines.set_segments(transposed_lines)
+        artists.lines.set_segments(segments)
         artists.lines.set_edgecolors(ec)
         artists.lines.set_transform(self.make_transform(t, ax))
         return artists

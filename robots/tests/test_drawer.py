@@ -26,8 +26,9 @@ def test_draw_points():
     d = Drawer()
     
     points = np.array([
-        [0, 2, 4], # x
-        [0, 0, 2]  # y
+        [0, 0],
+        [2, 0],
+        [4, 2]
     ], dtype=float)
 
     d.draw_points(points, ax, marker=(5,1), fc=('r', 'b', 'g'))
@@ -45,18 +46,22 @@ def test_draw_lines():
     
     lines = []
     lines.append(np.array([
-        [0, 5],  # x
-        [0, 0]   # y
+        [0, 0],
+        [5, 0]
     ]))
     lines.append(np.array([
-        [4, 6, 6],  # x
-        [4, 4, 6]   # y
+        [4, 4],
+        [6, 4],
+        [6, 6]
     ]))
     d.draw_lines(lines, ax, ec='b')
 
-    otherlines = np.array(
-        [[[-2,-4],[-2,-4]]]
-    )
+    otherlines = np.array([
+        [
+            [-2,-2],
+            [-4,-4]
+        ]
+    ])
     d.draw_lines(otherlines, ax, ec='r')
 
     return fig

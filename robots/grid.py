@@ -30,7 +30,7 @@ class Grid(PoseNode):
 
         Params
         ------
-        values : MxM array 
+        values : NxM array 
             Cell values
         mincorner : 1x2 array
             Minimum corner of grid bounds
@@ -59,9 +59,9 @@ class Grid(PoseNode):
 
         Params
         ------
-        o : 1x3 array
+        o : 1x2 array
             Ray orgin in the coordinate frame of the grid.
-        d : 1x3 array
+        d : 1x2 array
             Unit length ray direction in the coordinate frame of the grid.
         tmax : float, optional
             Maximum parametric ray time

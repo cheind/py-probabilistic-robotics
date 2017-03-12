@@ -50,19 +50,18 @@ def test_pose_transforms():
 def test_transform_points_vectors():
     m = transforms.transform_from_pose([10, 0, math.pi/2])
     points = np.array([
-        [0, -5],
-        [0, -5]
+        [0, 0],
+        [-5, -5]
     ], dtype=float)
 
-    np.testing.assert_allclose(transforms.transform(m, points), np.array([[10, 15.], [0, -5]]))
-    np.testing.assert_allclose(transforms.transform(m, points, hvalue=0.), np.array([[0, 5], [0, -5]]))
+    np.testing.assert_allclose(transforms.transform(m, points), np.array([[10, 0], [15., -5]]))
+    np.testing.assert_allclose(transforms.transform(m, points, hvalue=0.), np.array([[0, 0], [5, -5]]))
 
     points = np.array([
-        [0, -5],
-        [0, -5],
-        [1, 1]
+        [0, 0, 1],
+        [-5, -5, 1],
     ], dtype=float)
-    np.testing.assert_allclose(transforms.transform(m, points), np.array([[10, 15], [0, -5], [1,1]]))
+    np.testing.assert_allclose(transforms.transform(m, points), np.array([[10, 0, 1], [15, -5, 1]]))
 
 
 def test_rigid_inverse():

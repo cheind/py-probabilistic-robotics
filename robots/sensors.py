@@ -32,7 +32,7 @@ class LandmarkSensor(PoseNode):
         Type of measurement. One of ['position', 'bearing', 'distance']
     environment : Grid
         Grid used to determine occlusion of landmarks with respect to sensor.
-    landmarks : 2xN array
+    landmarks : Nx2 array
         True landmark positions in x,y.
     """
 
@@ -41,7 +41,7 @@ class LandmarkSensor(PoseNode):
 
         Params
         ------
-        landmarks : 2xN array
+        landmarks : Nx2 array
             Vector of true landmark positions in world frame.
 
         Kwargs
@@ -94,7 +94,7 @@ class LandmarkSensor(PoseNode):
         -------
         mask : 1xN boolean array
             A mask indicating the visibility of individual landmarks
-        position : 2xN array 
+        position : Nx2 array 
             Landmark positions with respect to sensor frame. Only if measure is 'position'            
         bearing : 1xN array 
             Landmark bearings measured with respect to the sensor x-axis. Only if measure is 'bearing'
@@ -110,14 +110,14 @@ class LandmarkSensor(PoseNode):
         local_landmarks = transforms.transform(self.transform_from_world, self.landmarks)
 
         # Add noise to measurement
-        dists = np.linalg.norm(local_landmarks, axis=0)
+        dists = np.linalg.norm(local_landmarks, axis=1)
         sigma = dists * sense_err
-        e = np.random.randn(2, self.landmarks.shape[1])
-        e *= sigma[np.newaxis, :]
+        e = np.random.randn(self.landmarks.shape[0], 2)
+        e *= sigma[:, np.newaxis]
         noisy_landmarks = local_landmarks + e
 
         # Compute angles w.r.t landmarks in -pi,pi
-        angles = np.arctan2(noisy_landmarks[1], noisy_landmarks[0])
+        angles = np.arctan2(noisy_landmarks[:, 1], noisy_landmarks[:, 0])
 
         # Determine seen / unseen elements
         mask = np.logical_and(dists <= self.maxdist, np.abs(angles) <= self.fov / 2)
@@ -130,18 +130,19 @@ class LandmarkSensor(PoseNode):
             for i, m in enumerate(mask):
                 if not m:
                     continue                    
-                d = env_landmarks[:2, i] - env_o
+                d = env_landmarks[i] - env_o
                 n = np.linalg.norm(d)
-                d /= n
-                ret, t, cell = environment.intersect_with_ray(env_o, d, tmax=n)
-                mask[i] = not ret or t > n
+                if not np.isclose(n, 0.): # Landmarks directly at sensor are never blocked by obstacles.
+                    d /= n
+                    ret, t, cell = environment.intersect_with_ray(env_o, d, tmax=n)
+                    mask[i] = not ret or t > n
 
         if measure == 'position':
             return mask, noisy_landmarks
         elif measure == 'bearing':
             return mask, angles
         elif measure == 'distance':
-            dists = np.linalg.norm(noisy_landmarks, axis=0)
+            dists = np.linalg.norm(noisy_landmarks, axis=1)
             return mask, dists
         else:
             raise ValueError('Unknown measure type')
@@ -227,14 +228,14 @@ class LidarSensor(PoseNode):
         -------
         mask : 1xN boolean array
             A mask indicating the success of range measurement of individual rays
-        position : 2xN array 
+        position : Nx2 array 
             Ray/environment intersection locations in the sensor frame.
         """
         sense_err = kwargs.pop('err', self.sense_err)
         environment = kwargs.pop('environment', self.environment)
 
         mask = np.zeros(len(self.angles), dtype=bool)
-        points = np.zeros((2, len(self.angles)))
+        points = np.zeros((len(self.angles), 2))
 
         to_env = self.transform_to(environment)        
         pose = transforms.pose_from_transform(to_env)
@@ -242,7 +243,7 @@ class LidarSensor(PoseNode):
             d = np.array([math.cos(pose[2] - a), math.sin(pose[2] - a)])
             ret, t, cell = environment.intersect_with_ray(pose[:2], d, tmax=self.maxdist)
             if ret:
-                points[:, i] = pose[:2] + t * d
+                points[i, :] = pose[:2] + t * d
                 mask[i] = True
 
         from_env = transforms.rigid_inverse(to_env)

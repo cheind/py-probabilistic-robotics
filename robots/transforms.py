@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-def h(x, n=1., axis=0):
+def h(x, n=1., axis=1):
     """Returns the homogeneous version of given vectors.
 
     Params
@@ -21,7 +21,7 @@ def h(x, n=1., axis=0):
     h = np.full((s), n)
     return np.append(x, h, axis=axis)
 
-def hnorm(x, axis=0, skip_division=False):
+def hnorm(x, axis=1, skip_division=False):
     """Returns the normalized, homogeneous undone, version of given vectors.
 
     Params
@@ -118,20 +118,20 @@ def transform(m, x, hvalue=1.):
     ------
     m : 3x3 array
         Transformation matrix
-    x : 2xN or 3xN array
-        List of vectors.
+    x : Nx2 or Nx3 array
+        List of vectors in rows.
     hvalue: float, optional
-        Ambient dimension value used when `x` is of dimension 2xN
+        Ambient dimension value used when `x` is of dimension Nx2
 
     Returns
     -------
-    2xN or 3xN array
+    Nx2 or Nx3 array
         List of transformed vectors.
     """
-    needh = x.shape[0] == 2
+    needh = x.shape[1] == 2
     if needh:
         x = h(x, n=hvalue)
-    x = np.dot(m, x)    
+    x = np.dot(m, x.T).T  
     if needh:
         x = hnorm(x, skip_division=True)
     return x

@@ -84,7 +84,6 @@ class XYPhiRobot(PoseNode):
 
         phi = self.pose[2] + motion[0] + e[0]
         phi = np.arctan2(np.sin(phi), np.cos(phi))  # phi in [-pi, pi]
-        #print('new phi robot ', phi)
         self.pose[0] += math.cos(phi) * (motion[1] + e[1])
         self.pose[1] += math.sin(phi) * (motion[1] + e[1])
         self.pose[2] = phi#self._normalized_phi(phi)

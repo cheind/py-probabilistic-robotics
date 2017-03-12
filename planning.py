@@ -7,7 +7,7 @@ from robots.grid import Grid
 from robots.planning.gridgraph import GridGraph
 from robots.planning.astar import astar
 from robots.planning.smooth import smooth_path
-from robots.planning.trajectories import PolynomialTrajectory
+from robots.planning.trajectories.quintic import QuinticTrajectory
 
 submask = np.array([
     [0, 1, 0, 0, 0, 0],
@@ -48,8 +48,8 @@ start = (0, 0) # x,y not row,col
 goal = (9, 1)
 
 def draw_path(drawer, ax, path, color):
-    lines = np.asarray(path).T + 0.5
-    drawer.draw_lines(lines.reshape(1,2,-1), ax, ec=color)
+    lines = np.asarray(path) + 0.5
+    drawer.draw_lines(lines.reshape(1,-1, 2), ax, ec=color)
 
 # The Gridgraph provides movements on a grid like structure. A* does not make any
 # assumption about topology of movements.
@@ -104,13 +104,13 @@ ax.invert_yaxis()
 d = Drawer()
 
 d.draw_grid(grid, ax, zorder=1)
-d.draw_points(np.asarray([start]).T + 0.5, ax, fc='r')
-d.draw_points(np.asarray([goal]).T + 0.5, ax, fc='g')
-d.draw_points(np.asarray([start]).T + 0.5, ax, fc='r', marker='o', key='loc')
+d.draw_points(np.asarray([start]) + 0.5, ax, fc='r')
+d.draw_points(np.asarray([goal]) + 0.5, ax, fc='g')
+d.draw_points(np.asarray([start]) + 0.5, ax, fc='r', marker='o', key='loc')
 
 spath = smooth_path(path, 0.5)
-traj = PolynomialTrajectory(spath, [0.5]*(len(path)-1), [0,0], [0]*(len(path)))
-t = np.linspace(0, traj.total_time, 1000)
+traj = QuinticTrajectory(spath, [0.,0.], [0.,0.], np.arange(0, len(spath), 1.))
+t = np.linspace(0, traj.t[-1], 500)
 x, dx, ddx = traj(t)
 draw_path(d, ax, x, 'g')
 
@@ -119,7 +119,7 @@ def update(i):
     x, dx, ddx = traj(t)
     return d.draw_points(x + 0.5, ax, fc='r', marker='o', key='loc')
 
-ani = animation.FuncAnimation(fig, update, int(traj.total_time * 30), interval=30, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update, int(traj.t[-1] * 30), interval=30, blit=True, repeat=True)
 
 
 fig = plt.figure()

@@ -159,10 +159,79 @@ class PolynomialTrajectory:
         c = np.linalg.solve(A, b)
         return c
 
-def lspb(p, dt, a, v, t):
-    # x = x0 + t*v0 + 0.5*a*t**2
-    # v = a*t -> t = v/a
-    bt = v/a
+
+class LSPBTrajectory:
+
+    def __init__(self, points, dt, v, a):
+        n = len(points)
+        x = np.asarray(points).astype(float)
+
+        self.dt = np.asarray(dt).astype(float)
+        self.v = np.asarray(v).astype(float)
+        self.a = np.asarray(a).astype(float)
+        
+        self.bt = np.zeros(n)  
+        self.bt[1:-1] = np.abs(self.v[1:] - self.v[:-1]) / self.a[1:-1]      
+        self.bt[0] = (2. * self.v[0]) / self.a[0]
+        self.bt[-1] = (2. * self.v[-1]) / self.a[-1]
+        self.bt *= 0.5
+
+        self.lt = self.dt - self.bt[:-1] - self.bt[1:]
+
+        self.xa = np.zeros(n-1)
+        self.xl = np.zeros(n-1)
+        self.xd = np.zeros(n-1)
+
+        self.xa[0] = x[0]
+        self.xl[0] = self.xa[0] + 0.5 * self.a[0] * self.bt[0]**2
+        self.xd[0] = self.xl[0] + self.v[0] * self.lt[0]
+
+        print(self.bt)
+        print(self.lt)
+
+        #self.xa[1:] = self.xd[:-1] + self.v[:-1] * self.bt[1:-1] - 0.5 * self.a[1:-1] * self.bt[1:-1]**2
+
+
+def lspb2(p, vmax, amax, ts):
+
+    n = len(p)
+    p = np.asarray(p).astype(float)
+    
+    
+    dt = np.abs(p[1:] - p[:-1]) / vmax
+    v = (p[1:] - p[:-1]) / dt
+    bt = np.zeros(n)
+    bt[0] = np.abs(v[0]) / amax
+    bt[-1] = np.abs(-v[-1]) / amax
+    bt[1:-1] = np.abs(v[1:] - v[:-1]) / amax
+    
+    at = np.zeros(n, dtype=float)
+    at[1:] = np.cumsum(dt)
+    at += bt[0] * 0.5
+
+    #print(at)
+
+    #i = np.digitize(t, at)
+    #islin = np.logical_and(t >= at[i] + 0.5*bt[i], t <= at[i+1] - 0.5*bt[i+1])
+    #http://www.diag.uniroma1.it/~deluca/rob1_en/14_TrajectoryPlanningCartesian.pdf
+    
+    x = np.zeros(len(ts))
+    for idx, t in enumerate(ts):
+        i = np.digitize(t, at)
+        if t >= at[i] + 0.5*bt[i] and t <= at[i+1] - 0.5*bt[i+1]:
+            x[idx] = p[i] + v[i] * (t - at[i])
+        else:
+            if i == 0:
+                x[idx] = p[i] + 0.5 * amax * (t - at[i] + bt[i] * 0.5)**2
+    
+    return x
+
+
+
+def lspb(p, dt, v, a, t):
+    # a*bt**2 - a*dt*bt + (p[1] - p[0]) = 0
+    bt = dt/2 - math.sqrt(a**2*dt**2 - 4*a*(p[1]- p[0])) / (2 * a)
+    v = a * bt
     lt = dt - 2.*bt
 
     isacc = t < bt
@@ -186,18 +255,40 @@ def lspb(p, dt, a, v, t):
 
     return x, dx, ddx
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    t = np.linspace(0, 5, 100)
-    x, dx, ddx = lspb([0, 10], 5, 2, 3, t)
 
+
+
+if __name__ == '__main__':
+
+    """
+    import matplotlib.pyplot as plt
+
+    t = [0, 4, 8, 12]
+    x = [0, 3, 2, 4]
+    traj = LSPBTrajectory(x, [4, 4, 4], [2, 2, 2], [2, 2, 2, 2])
+  
     fig, ax = plt.subplots()
     ax.plot(t, x, label='x')
+    #ax.plot(t[:-1], traj.xa)
+    ax.scatter([0 + traj.bt[0]], traj.xl[0])
+    ax.scatter([0 + traj.bt[0] + traj.lt[0]], traj.xd[0])
+    plt.show()
+    """
+
+    import matplotlib.pyplot as plt
+    t = np.arange(0, 3, 0.01)
+    x = lspb2([0., 10.], 4, 2, t)
+    print(x)
+
+    """
+    fig, ax = plt.subplots()
+    ax.plot(t, x, label='x')
+    ax.plot([0,5], [0,10])
     ax.plot(t, dx, label='dx')
     ax.step(t, ddx, label='ddx')
     ax.legend(loc='upper left')
     plt.show()
-
+    """    
 
     """"
     traj = PolynomialTrajectory(np.array([10, 20, 0, 30, 40]), [2, 2, 4, 2], [0, 0, 0, 0, 0], [0, 0])

@@ -82,7 +82,9 @@ class TrapezoidalTrajectory:
         q1 = np.atleast_1d(q1)
 
         # For coordinated motion, timing is build for axis with largest displacement
-        h = np.abs(q1 - q0)
+        d = q1 - q0
+        h = np.abs(d)
+        s = np.sign(d)
         i = np.argmax(h)
 
         ta = dq_max / ddq_max # Acceleration time
@@ -94,11 +96,11 @@ class TrapezoidalTrajectory:
             t = 2 * ta
             dq_max = ddq_max * ta 
 
-        ddq = (q1 - q0) / (ta * (t - ta))
-        dq = (q1 - q0)/ (t - ta)
+        ddq = (d) / (ta * (t - ta))
+        dq = (d)/ (t - ta)
 
-        dq[i] = dq_max
-        ddq[i] = ddq_max
+        dq[i] = s[i] * dq_max
+        ddq[i] = s[i] * ddq_max
 
         return t, ta, dq, ddq
 

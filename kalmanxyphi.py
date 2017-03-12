@@ -85,9 +85,9 @@ if __name__ == '__main__':
     np.random.seed(0)
     
     # Landmarks in world space
-    landmarks = np.vstack((
-        np.random.uniform(-20.0, 120.0, [1, 50]),
-        np.random.uniform(-20.0, 120.0, [1, 50])))
+    landmarks = np.hstack((
+        np.random.uniform(-20.0, 120.0, [50, 1]),
+        np.random.uniform(-20.0, 120.0, [50, 1])))
 
     # Virtual x,y,phi robot
     robot = XYPhiRobot(pose=[50, 30,0], err=[0.5, 0.1])
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         def norm(phi):
             return np.arctan2(np.sin(phi), np.cos(phi))
         def target():
-            return landmarks[:, np.random.randint(landmarks.shape[1])]
+            return landmarks[np.random.randint(landmarks.shape[0])]
         #x = False
         while True:
             t = target()
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         #k.predict(m)
         
         landmark_mask, landmark_pos = sensor.sense()
-        landmark_pos = landmark_pos[:, landmark_mask]
+        landmark_pos = landmark_pos[landmark_mask]
         #landmark_indices = np.where(landmark_mask)[0]
         #if np.sum(landmark_mask) > 2:
         #    k.update(landmark_mask, landmark_pos)

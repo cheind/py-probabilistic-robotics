@@ -52,20 +52,23 @@ class TrapezoidalTrajectory:
        
         t = t - self.t[i] # Time relative to segment
         t = t.reshape(-1, 1) # Needed for elementwise ops
+        ta = self.ta.reshape(-1, 1)
+        dt = self.dt.reshape(-1, 1)
 
-        isa = t <= self.ta[i]
-        isd = t > (self.dt[i] - self.ta[i])
+
+        isa = t <= ta[i]
+        isd = t > (dt[i] - ta[i])
         isl = np.logical_and(~isa, ~isd)
 
         q = \
             (self.q[i] + 0.5*self.a[i]*t**2) * isa + \
-            (self.q[i] + self.v[i]*(t - self.ta[i]*0.5)) * isl + \
-            (self.q[i+1] - 0.5*self.a[i]*(self.dt[i]-t)**2) * isd
+            (self.q[i] + self.v[i]*(t - ta[i]*0.5)) * isl + \
+            (self.q[i+1] - 0.5*self.a[i]*(dt[i]-t)**2) * isd
 
         dq = \
             (self.a[i] * t) * isa + \
             self.v[i] * isl + \
-            (self.a[i] * (self.dt[i]-t)) * isd
+            (self.a[i] * (dt[i]-t)) * isd
 
         ddq = \
             self.a[i] * isa + \

@@ -8,6 +8,7 @@ from robots.planning.gridgraph import GridGraph
 from robots.planning.astar import astar
 from robots.planning.smooth import smooth_path
 from robots.planning.trajectories.quintic import QuinticTrajectory
+from robots.planning.trajectories.trapezoidal import TrapezoidalTrajectory
 
 submask = np.array([
     [0, 1, 0, 0, 0, 0],
@@ -108,8 +109,7 @@ d.draw_points(np.asarray([start]) + 0.5, ax, fc='r')
 d.draw_points(np.asarray([goal]) + 0.5, ax, fc='g')
 d.draw_points(np.asarray([start]) + 0.5, ax, fc='r', marker='o', key='loc')
 
-spath = smooth_path(path, 0.5)
-traj = QuinticTrajectory(spath, [0.,0.], [0.,0.], np.arange(0, len(spath), 1.))
+traj = TrapezoidalTrajectory(path, 3, 5)
 t = np.linspace(0, traj.t[-1], 500)
 x, dx, ddx = traj(t)
 draw_path(d, ax, x, 'g')

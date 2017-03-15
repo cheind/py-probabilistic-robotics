@@ -158,44 +158,51 @@ def lspb(q, dt, ddq_max, t):
     tb = np.abs(np.diff(dq)) / ddq_max
     ddq = (np.diff(dq)) / tb
 
-    T = np.concatenate(([0.], np.cumsum(dt[1:-1])))
-    tf = tb[0]*0.5 + np.sum(dt[1:-1]) + tb[-1]*0.5
+    T = np.concatenate(([0], np.cumsum(dt[1:-1]))) 
+    #T = T + tb[0]*0.5    
+    #tf = tb[0]*0.5 + np.sum(dt[1:-1]) + tb[-1]*0.5
+    tf = np.sum(dt[1:-1]) + tb[-1]*0.5
 
-    TS = T + tb[0]*0.5
-    t = np.atleast_1d(t)        
-    t = np.clip(t, 0, tf) 
+    t = np.atleast_1d(t)            
+    t = np.clip(t, -tb[0]*0.5, tf)   
 
-    i = np.digitize(t, T+tb[0]*0.5, right=True)
+    print(tb)
+    bins = T[:-1] + (dt[1:-1] - tb[1:]*0.5)
+    i = np.digitize(t, bins)
 
-    print(TS)
-    print(t)
-    print(i)
+    isb = np.logical_and(t >= (T[i] - tb[i]*0.5), (t <= T[i] + tb[i]*0.5))
     
-    t = t.reshape(-1, 1)
-    print(np.logical_and(t >= (TS - tb*0.5), (t <= TS + tb*0.5)))
-        
+    x = \
+        (q[i+1] + dq[i] * (t - T[i]) + 0.5*ddq[i]*(t - T[i] + tb[i]*0.5)**2) * isb + \
+        (q[i+1] + dq[i+1] * (t - T[i])) * ~isb
+
+    dx = \
+        (dq[i] + ddq[i]*(t - T[i] + tb[i]*0.5)) * isb + \
+        (dq[i+1]) * ~isb
+
+    ddx = \
+        (ddq[i]) * isb + \
+        (0) * ~isb
+
+    return x, dx, ddx
+
+#q = lspb([0, 1, 0.5], [2, 2], 1, t)
 
 
-    """
-    isb = np.logical_and(t >= (TS[i] - tb[i]*0.5), (t <= TS[i] + tb[i]*0.5))
-    
-    return \
-        (q[i+1] + dq[i] * (t - TS[i]) + 0.5*ddq[i]*(t - TS[i] + tb[i]*0.5)**2) * isb + \
-        (q[i+1] + dq[i+1] * (t - TS[i])) * ~isb
-    """
-    
-
-t = np.linspace(0, 4, 20)
-q = lspb([0, 1, 0.5], [2, 2], 1, t)
-
-"""
 import matplotlib.pyplot as plt
 
-plt.scatter([0, 2, 4], [0, 1, 0.5])
-plt.plot(t, q)
-plt.show()
-"""
+dt = [2, 2, 2, 2]
+x = [0, 1, 0, 0, 3.]
 
+t = np.concatenate(([0], np.cumsum(dt)))
+plt.scatter(t, x)
+t = np.linspace(-0.25, 7, 500)
+x, dx, ddx = lspb(x, dt, 1, t)
+plt.plot(t, x)
+plt.plot(t, dx)
+plt.plot(t, ddx)
+
+plt.show()
 
 
 

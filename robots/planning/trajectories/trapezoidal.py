@@ -149,6 +149,52 @@ class TrapezoidalTrajectory:
         return t, ta, td, dq, ddq
 
 
+def lspb(q, dt, ddq_max, t):
+    q = np.asarray(q).astype(float)
+    q = np.concatenate(([q[0]], q, [q[-1]]))
+    dt = np.concatenate(([1], dt, [1]))
+    
+    dq = np.diff(q) / dt
+    tb = np.abs(np.diff(dq)) / ddq_max
+    ddq = (np.diff(dq)) / tb
+
+    T = np.concatenate(([0.], np.cumsum(dt[1:-1])))
+    tf = tb[0]*0.5 + np.sum(dt[1:-1]) + tb[-1]*0.5
+
+    TS = T + tb[0]*0.5
+    t = np.atleast_1d(t)        
+    t = np.clip(t, 0, tf) 
+
+    i = np.digitize(t, T+tb[0]*0.5, right=True)
+
+    print(TS)
+    print(t)
+    print(i)
+    
+    t = t.reshape(-1, 1)
+    print(np.logical_and(t >= (TS - tb*0.5), (t <= TS + tb*0.5)))
+        
+
+
+    """
+    isb = np.logical_and(t >= (TS[i] - tb[i]*0.5), (t <= TS[i] + tb[i]*0.5))
+    
+    return \
+        (q[i+1] + dq[i] * (t - TS[i]) + 0.5*ddq[i]*(t - TS[i] + tb[i]*0.5)**2) * isb + \
+        (q[i+1] + dq[i+1] * (t - TS[i])) * ~isb
+    """
+    
+
+t = np.linspace(0, 4, 20)
+q = lspb([0, 1, 0.5], [2, 2], 1, t)
+
+"""
+import matplotlib.pyplot as plt
+
+plt.scatter([0, 2, 4], [0, 1, 0.5])
+plt.plot(t, q)
+plt.show()
+"""
 
 
 

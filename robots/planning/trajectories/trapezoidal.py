@@ -157,6 +157,7 @@ def lspb(q, dt, ddq_max, t):
     dq = np.diff(q) / dt
     tb = np.abs(np.diff(dq)) / ddq_max
     ddq = (np.diff(dq)) / tb
+    ddq[tb==0.] = 0.
 
     T = np.concatenate(([0], np.cumsum(dt[1:-1]))) 
     #T = T + tb[0]*0.5    
@@ -186,13 +187,11 @@ def lspb(q, dt, ddq_max, t):
 
     return x, dx, ddx
 
-#q = lspb([0, 1, 0.5], [2, 2], 1, t)
-
 
 import matplotlib.pyplot as plt
 
 dt = [2, 2, 2, 2]
-x = [0, 1, 0, 0, 3.]
+x = [0, 1, 2, 3, 3.]
 
 t = np.concatenate(([0], np.cumsum(dt)))
 plt.scatter(t, x)

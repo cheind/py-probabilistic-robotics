@@ -10,16 +10,19 @@ from robots.planning.smooth import smooth_path
 from robots.planning.trajectories.quintic import QuinticTrajectory
 from robots.planning.trajectories.trapezoidal import ApproximateTrapezoidalTrajectory
 
-submask = np.array([
-    [0, 1, 0, 0, 0, 0],
-    [0, 1, 0, 0, 0, 0],
-    [0, 1, 0, 1, 1, 0],
-    [0, 1, 0, 0, 1, 0],
-    [0, 0, 0, 0, 1, 0]
+mask = np.array([
+    [0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 1, 0, 1, 1, 0, 1, 0, 0, 0],
+    [0, 1, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
 ])
 
-mask = np.zeros((10,10))
-mask[:5, :6] = submask
 grid = Grid(mask, [0,0], [10,10])
 
 def cost(a, b):
@@ -46,7 +49,7 @@ def heuristic(a, goal):
 
 # A* algorithms assumes hashable nodes, so we use tuples instead of np.ndarray
 start = (0, 0) # x,y not row,col
-goal = (9, 1)
+goal = (9, 9)
 
 def draw_path(drawer, ax, path, color):
     lines = np.asarray(path) + 0.5
@@ -110,7 +113,7 @@ d.draw_points(np.asarray([goal]) + 0.5, ax, fc='g')
 d.draw_points(np.asarray([start]) + 0.5, ax, fc='r', marker='o', key='loc')
 
 #traj = QuinticTrajectory(path, [0]*len(path), [0]*len(path), np.linspace(0, 10, len(path)))
-traj = ApproximateTrapezoidalTrajectory(path, [0.5]*(len(path)-1), 6)
+traj = ApproximateTrapezoidalTrajectory(path, dq_max=5, ddq_max=6)
 t = np.linspace(0, traj.total_time, 500)
 x, dx, ddx = traj(t)
 draw_path(d, ax, x, 'g')
@@ -120,7 +123,7 @@ def update(i):
     x, dx, ddx = traj(t)
     return d.draw_points(x + 0.5, ax, fc='r', marker='o', key='loc')
 
-ani = animation.FuncAnimation(fig, update, int(traj.t[-1] * 30), interval=30, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update, int(traj.total_time * 30), interval=30, blit=True, repeat=True)
 
 
 fig = plt.figure()

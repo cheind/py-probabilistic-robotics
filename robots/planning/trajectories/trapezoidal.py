@@ -2,8 +2,44 @@ import numpy as np
 import math
 
 class TrapezoidalTrajectory:
+    """Multiple point multiple axis trajectory planning using linear segments and parabolic blends.
 
-    def __init__(self, q, dq_max, ddq_max, dq=None):
+    Given N points in M coordinates and boundary conditions, this method generates an interpolating
+    trajectory through the N points. Each trajectory segment is divided into three parts: a constant
+    acceleration phase, a coasting phase with zero acceleration followed by a constant deceleration 
+    phase.
+
+    All actuators (axis) are coordinated in time.
+
+    References
+    ----------
+    
+    1. Biagiotti, Luigi, and Claudio Melchiorri. Trajectory planning for automatic machines and robots. Springer Science & Business Media, 2008.
+    1. Craig, John J. Introduction to robotics: mechanics and control. Vol. 3. Upper Saddle River: Pearson Prentice Hall, 2005.
+    """
+
+    def __init__(self, q, **kwargs):
+        """Create a TrapezoidalTrajectory.
+
+        Precomputes trajectory data. 
+
+        Params
+        ------
+        q : NxM array
+            Waypoints in rows.
+        
+        Kwargs
+        ------
+        dq_max : scalar, optional
+            Maximum velocity for all waypoints and all axis
+        ddq_max : scalar
+            Maximum acceleration for all waypoints and axis
+        dq : Nx1 or NxM array, optional
+            Velocities at waypoints. If not specified a heuristic
+            will be used that anticipates motions to avoid zero velocities
+            at waypoints. First and last waypoint will be assigned zero velocity
+            for convinience.
+        """
 
         assert len(q) > 1
 
@@ -11,8 +47,12 @@ class TrapezoidalTrajectory:
         if self.q.ndim == 1:
             self.q = self.q.reshape(-1, 1)
 
-        self.nseg = len(q) - 1
+        
+        dq_max = kwargs.pop('dq_max', None) # Max velocity
+        ddq_max = kwargs.pop('ddq_max') # Max acceleration
+        dq = kwargs.pop('dq', None) # Velocities at waypoints
 
+        self.nseg = len(q) - 1
         self.dt = np.zeros(self.nseg)
         self.t = np.zeros(self.nseg+1)
         self.ta = np.zeros((self.nseg, self.q.shape[1]))
@@ -33,6 +73,7 @@ class TrapezoidalTrajectory:
             if self.v0.ndim == 1:
                 self.v0 = self.v0.reshape(-1, 1)
             assert self.v0.shape == (len(q), 1) or self.v0.shape == self.q.shape
+            dq_max = self.v0.max()
 
         for i in range(self.nseg):
             self.dt[i], self.ta[i], self.td[i], self.v[i], self.a[i] = TrapezoidalTrajectory.solve(self.q[i], self.q[i+1], self.v0[i], self.v0[i+1], dq_max, ddq_max)
@@ -150,15 +191,57 @@ class TrapezoidalTrajectory:
 
 
 class ApproximateTrapezoidalTrajectory:
+    """Approximate multiple point multiple axis trajectory planning using trapezoidal velocity profiles.
 
-    def __init__(self, q, dt, ddq_max):
+    Given N points in M coordinates and boundary conditions, this method generates an approximating
+    trajectory through the N points. Each trajectory segment is divided into three parts: a constant
+    acceleration phase, a coasting phase with zero acceleration followed by a constant deceleration 
+    phase. In these linear-parabolic-blend splines, via points are usually not reached. By increasing 
+    the maximum allowed acceleration the deviation from the via point can be reduced.
+    
+    All actuators (axis) are coordinated in time.
+
+    References
+    ----------
+    
+    1. Kunz, Tobias, and Mike Stilman. Turning paths into trajectories using parabolic blends. Georgia Institute of Technology, 2011.
+    1. Biagiotti, Luigi, and Claudio Melchiorri. Trajectory planning for automatic machines and robots. Springer Science & Business Media, 2008.
+    1. Craig, John J. Introduction to robotics: mechanics and control. Vol. 3. Upper Saddle River: Pearson Prentice Hall, 2005.
+    """
+
+    def __init__(self, q, **kwargs):
+        """Create ApproximateTrapezoidalTrajectory
+
+        Params
+        ------
+        q : NxM array
+            N Waypoints in M coordinates.
         
-        assert len(q) > 1
-        assert len(dt) == len(q) - 1
+        Kwargs
+        ------
+        dq_max : scalar, optional
+            Maximum velocity in each segment. This will be used
+            to compute segment times `dt` when they are not specified.
+        ddq_max : scalar
+            Maximum acceleration for all axis in all waypoints.
+        dt: (N-1)x1 array, optional
+            Desired durations for each segment
+        """
 
+        assert len(q) > 1
+  
         q = np.asarray(q).astype(float)
         if q.ndim == 1:
             q = q.reshape(-1, 1)
+
+        dt = kwargs.pop('dt', None)
+        ddq_max = kwargs.pop('ddq_max')
+        dq_max = kwargs.pop('dq_max', None)
+        
+        if dt is None:
+            assert dq_max is not None
+            dt = np.abs(np.diff(q, axis=0)) / dq_max
+            dt = np.amax(dt, axis=1)
 
         dt = np.concatenate(([1], dt, [1]))[:, np.newaxis]
 
@@ -220,10 +303,6 @@ class ApproximateTrapezoidalTrajectory:
             (0) * ~isb
 
         return (q, dq, ddq) if not isscalar else (q[0], dq[0], ddq[0])
-
-def estimate_dt(q, dq_max):
-    return np.abs(np.diff(q, axis=0)) / dq_max
-
 
 
         

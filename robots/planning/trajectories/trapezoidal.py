@@ -149,26 +149,32 @@ class TrapezoidalTrajectory:
         return t, ta, td, dq, ddq
 
 
+def estimate_dt(q, dq_max):
+    return np.abs(np.diff(q)) / dq_max
+
 def lspb(q, dt, ddq_max, t):
     q = np.asarray(q).astype(float)
-    q = np.concatenate(([q[0]], q, [q[-1]]))
-    dt = np.concatenate(([1], dt, [1]))
+    q = np.concatenate(([q[0]], q, [q[-1]])) # Artificial waypoints at beginning and end added so that velocities are zero in those segments.
     
+    # Given dt, compute vel
+    dt = np.concatenate(([1], dt, [1]))   # One less the number of waypoints q (including artifical ones).    
     dq = np.diff(q) / dt
-    tb = np.abs(np.diff(dq)) / ddq_max
-    ddq = (np.diff(dq)) / tb
-    ddq[tb==0.] = 0.
+
+    tb = np.abs(np.diff(dq)) / ddq_max # Minimize blend time by moving with max acceleration.
+    assert (tb[:-1] + tb[1:] <= 2.*dt[1:-1]).all(), 'Trajectory not feasible.'
+
+    ddq = (np.diff(dq)) / tb # blend time can be zero for segments of same velocity
+    ddq[tb==0.] = 0. # Todo: avoid this in the first place? safe_div?
 
     T = np.concatenate(([0], np.cumsum(dt[1:-1]))) 
     #T = T + tb[0]*0.5    
     #tf = tb[0]*0.5 + np.sum(dt[1:-1]) + tb[-1]*0.5
-    tf = np.sum(dt[1:-1]) + tb[-1]*0.5
+    tf = np.sum(dt[1:-1]) + tb[-1]*0.5 # Account for half blend time at end (and beginning)
 
     t = np.atleast_1d(t)            
-    t = np.clip(t, -tb[0]*0.5, tf)   
+    t = np.clip(t, -tb[0]*0.5, tf)
 
-    print(tb)
-    bins = T[:-1] + (dt[1:-1] - tb[1:]*0.5)
+    bins = T[:-1] + (dt[1:-1] - tb[1:]*0.5) # Tricky part. Digitization is performed so that the segment i is [Ti-tb[i]*0.5..Ti+1-tb[i+1]*0.5]
     i = np.digitize(t, bins)
 
     isb = np.logical_and(t >= (T[i] - tb[i]*0.5), (t <= T[i] + tb[i]*0.5))
@@ -190,13 +196,15 @@ def lspb(q, dt, ddq_max, t):
 
 import matplotlib.pyplot as plt
 
-dt = [2, 2, 2, 2]
-x = [0, 1, 2, 3, 3.]
+#dt = [2, 2, 2, 2]
+x = [0, 1, 0, 3, 2]
+dt = estimate_dt(x, 2)
+print(dt)
 
 t = np.concatenate(([0], np.cumsum(dt)))
 plt.scatter(t, x)
-t = np.linspace(-0.25, 7, 500)
-x, dx, ddx = lspb(x, dt, 1, t)
+t = np.linspace(-0.25, t[-1], 500)
+x, dx, ddx = lspb(x, dt, 2, t)
 plt.plot(t, x)
 plt.plot(t, dx)
 plt.plot(t, ddx)

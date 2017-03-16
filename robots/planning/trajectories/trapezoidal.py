@@ -149,8 +149,80 @@ class TrapezoidalTrajectory:
         return t, ta, td, dq, ddq
 
 
+class ApproximateTrapezoidalTrajectory:
+
+    def __init__(self, q, dt, ddq_max):
+        
+        assert len(q) > 1
+        assert len(dt) == len(q) - 1
+
+        q = np.asarray(q).astype(float)
+        if q.ndim == 1:
+            q = q.reshape(-1, 1)
+
+        dt = np.concatenate(([1], dt, [1]))[:, np.newaxis]
+
+        self.q = np.concatenate(([q[0]], q, [q[-1]])) # Artificial waypoints at beginning and end added so that velocities are zero in those segments.
+        self.dq = np.diff(self.q, axis=0) / dt
+
+        tb = (np.abs(np.diff(self.dq, axis=0)) / ddq_max) # Minimize blend time by moving with max acceleration.
+        self.tb = np.amax(tb, axis=1)[:, np.newaxis]
+        assert (self.tb[:-1] + self.tb[1:] <= 2.*dt[1:-1]).all(), 'Trajectory not feasible.'
+    
+        self.ddq = (np.diff(self.dq, axis=0)) / self.tb
+        self.ddq[self.tb[:,0]==0] = 0.
+
+        self.t = np.concatenate(([0], np.cumsum(dt[1:-1])))
+        self.start_time = -tb[0, 0] * 0.5
+        self.total_time = tb[0, 0] * 0.5 + np.sum(dt[1:-1, 0]) + tb[-1, 0]*0.5
+        self.bins = self.t[:-1] + (dt[1:-1, 0] - self.tb[1:, 0]*0.5)
+
+    def __call__(self, t):
+        """Compute positions, velocities and accelerations at query time instants.
+
+        Params
+        ------
+        t : scalar or 1xN array
+            Time instants to compute trajectory configurations for. [qt[0]..qt[-1]]. If query
+            times are outside the interval, they are clipped to the nearest valid value.
+        
+        Returns
+        -------
+        q : NxM array
+            Position information in rows. One row per query time instant.
+        dq : NxM array
+            Velocity information in rows. One row per query time instant. 
+        ddq : NxM array
+            Acceleration information in rows. One row per query time instant.
+        """
+
+        isscalar = np.isscalar(t)
+        
+        t = np.atleast_1d(t)  
+        t = np.clip(t, -self.tb[0, 0]*0.5, self.total_time)
+        i = np.digitize(t, self.bins)
+
+        isb = np.logical_and(t >= (self.t[i] - self.tb[i, 0]*0.5), (t <= self.t[i] + self.tb[i, 0]*0.5))[:, np.newaxis]
+
+        T = self.t.reshape(-1, 1)
+        t = t.reshape(-1, 1)
+    
+        q = \
+            (self.q[i+1] + self.dq[i] * (t - T[i]) + 0.5*self.ddq[i]*(t - T[i] + self.tb[i]*0.5)**2) * isb + \
+            (self.q[i+1] + self.dq[i+1] * (t - T[i])) * ~isb
+
+        dq = \
+            (self.dq[i] + self.ddq[i]*(t - T[i] + self.tb[i]*0.5)) * isb + \
+            (self.dq[i+1]) * ~isb
+
+        ddq = \
+            (self.ddq[i]) * isb + \
+            (0) * ~isb
+
+        return (q, dq, ddq) if not isscalar else (q[0], dq[0], ddq[0])
+
 def estimate_dt(q, dq_max):
-    return np.abs(np.diff(q)) / dq_max
+    return np.abs(np.diff(q, axis=0)) / dq_max
 
 def lspb(q, dt, ddq_max, t):
     q = np.asarray(q).astype(float)
@@ -178,6 +250,10 @@ def lspb(q, dt, ddq_max, t):
     i = np.digitize(t, bins)
 
     isb = np.logical_and(t >= (T[i] - tb[i]*0.5), (t <= T[i] + tb[i]*0.5))
+
+    print('---------')
+
+    #print(q[i+1] + dq[i] * (t - T[i]) + 0.5*ddq[i]*(t - T[i] + tb[i]*0.5)**2)
     
     x = \
         (q[i+1] + dq[i] * (t - T[i]) + 0.5*ddq[i]*(t - T[i] + tb[i]*0.5)**2) * isb + \
@@ -191,15 +267,27 @@ def lspb(q, dt, ddq_max, t):
         (ddq[i]) * isb + \
         (0) * ~isb
 
+    print((x, dx, ddx))
+
     return x, dx, ddx
 
 
+"""
 import matplotlib.pyplot as plt
+
+
+
+
 
 #dt = [2, 2, 2, 2]
 x = [0, 1, 0, 3, 2]
-dt = estimate_dt(x, 2)
-print(dt)
+dt = estimate_dt(x, 0.5)
+
+
+traj = ApproximateTrapezoidalTrajectory([[0, 0], [1, 1], [0, 0], [3, 3], [2,2]], dt, 2)
+traj([0.1, 2])
+x, dx, ddx = lspb(x, dt, 2, [0.1, 2])
+
 
 t = np.concatenate(([0], np.cumsum(dt)))
 plt.scatter(t, x)
@@ -210,7 +298,7 @@ plt.plot(t, dx)
 plt.plot(t, ddx)
 
 plt.show()
-
+"""
 
 
 

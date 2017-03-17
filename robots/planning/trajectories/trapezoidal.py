@@ -251,9 +251,10 @@ class ApproximateTrapezoidalTrajectory:
         tb = (np.abs(np.diff(self.dq, axis=0)) / ddq_max) # Minimize blend time by moving with max acceleration.
         self.tb = np.amax(tb, axis=1)[:, np.newaxis]
         assert (self.tb[:-1] + self.tb[1:] <= 2.*dt[1:-1]).all(), 'Trajectory not feasible.'
-    
-        self.ddq = (np.diff(self.dq, axis=0)) / self.tb
-        self.ddq[self.tb[:,0]==0] = 0.
+        
+        with np.errstate(invalid='ignore'):
+            self.ddq = (np.diff(self.dq, axis=0)) / self.tb
+            self.ddq[self.tb[:,0]==0] = 0.
 
         self.t = np.concatenate(([0], np.cumsum(dt[1:-1])))
         self.start_time = -tb[0, 0] * 0.5

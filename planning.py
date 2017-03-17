@@ -113,7 +113,7 @@ d.draw_points(np.asarray([goal]) + 0.5, ax, fc='g')
 d.draw_points(np.asarray([start]) + 0.5, ax, fc='r', marker='o', key='loc')
 
 #traj = QuinticTrajectory(path, [0]*len(path), [0]*len(path), np.linspace(0, 10, len(path)))
-traj = ApproximateTrapezoidalTrajectory(path, dq_max=5, ddq_max=6)
+traj = ApproximateTrapezoidalTrajectory(path, dq_max=2, ddq_max=6)
 t = np.linspace(0, traj.total_time, 500)
 x, dx, ddx = traj(t)
 draw_path(d, ax, x, 'g')
